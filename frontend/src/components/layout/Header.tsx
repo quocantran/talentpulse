@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { Menu, X, Sun, Moon, LogOut, Briefcase, FileText, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Menu, X, Sun, Moon, LogOut, Briefcase, FileText, Sparkles, CheckCircle2, UploadCloud, LayoutTemplate } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { LanguageSwitcher } from '../common/LanguageSwitcher';
 import { UserAvatar } from '../common/UserAvatar';
 import { UserDropdownMenu } from './UserDropdownMenu';
+import { CVDropdownMenu } from './CVDropdownMenu';
 
 export default function Header() {
   const { t } = useTranslation();
@@ -26,13 +27,6 @@ export default function Header() {
     await logout();
     navigate('/', { replace: true });
   };
-
-  const navLinks = [
-    { label: t('nav.jobs'), href: '#featured-jobs' },
-    { label: t('nav.companies'), href: '#categories' },
-    { label: t('nav.aiMatching'), href: '#ai-features' },
-    { label: t('nav.premium'), href: '#premium' },
-  ];
 
   return (
     <header
@@ -60,15 +54,28 @@ export default function Header() {
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary-light rounded-lg hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-all duration-200"
-              >
-                {link.label}
-              </a>
-            ))}
+            <a
+              href="/#featured-jobs"
+              className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary-light rounded-lg hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-all duration-200"
+            >
+              {t('nav.jobs')}
+            </a>
+            <a
+              href="/#categories"
+              className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary-light rounded-lg hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-all duration-200"
+            >
+              {t('nav.companies')}
+            </a>
+
+            {/* CV Dropdown Menu (Replaces AI Matching) */}
+            <CVDropdownMenu />
+
+            <a
+              href="/#premium"
+              className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary-light rounded-lg hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-all duration-200"
+            >
+              {t('nav.premium')}
+            </a>
           </nav>
 
           {/* Right Actions */}
@@ -161,16 +168,71 @@ export default function Header() {
             )}
 
             {/* Standard Nav Links */}
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
+            <a
+              href="/#featured-jobs"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              {t('nav.jobs')}
+            </a>
+            <a
+              href="/#categories"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              {t('nav.companies')}
+            </a>
+
+            {/* Mobile CV Group */}
+            <div className="my-1.5 p-2 rounded-2xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+              <div className="px-2.5 py-1 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                {t('nav.cvMenuTitle', 'CV & Cover letter')}
+              </div>
+              <Link
+                to="/my-cv"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-primary rounded-xl hover:bg-white dark:hover:bg-slate-700 transition-colors"
               >
-                {link.label}
-              </a>
-            ))}
+                <FileText className="h-4 w-4 text-slate-400" />
+                <span>{t('nav.manageCv', 'Quản lý CV')}</span>
+              </Link>
+              <Link
+                to="/my-cv#upload"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setTimeout(() => {
+                    const el = document.getElementById('upload-cv-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    window.dispatchEvent(new CustomEvent('talentpulse:scroll-upload'));
+                  }, 150);
+                }}
+                className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-primary rounded-xl hover:bg-white dark:hover:bg-slate-700 transition-colors"
+              >
+                <UploadCloud className="h-4 w-4 text-slate-400" />
+                <span>{t('nav.uploadCv', 'Tải CV lên')}</span>
+              </Link>
+              <Link
+                to="/cv-templates"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-primary rounded-xl hover:bg-white dark:hover:bg-slate-700 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <LayoutTemplate className="h-4 w-4 text-slate-400" />
+                  <span>{t('nav.cvTemplatesHot', 'Tạo CV - Kho mẫu CV')}</span>
+                </div>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/50">
+                  🔥{t('nav.hotBadge', 'Hot')}
+                </span>
+              </Link>
+            </div>
+
+            <a
+              href="/#premium"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              {t('nav.premium')}
+            </a>
 
             {/* Auth CTAs */}
             <div className="pt-3 border-t border-gray-200/60 dark:border-slate-700 flex flex-col gap-2">
