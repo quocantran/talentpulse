@@ -1,4 +1,5 @@
 import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { GuestRoute } from './auth/GuestRoute';
@@ -12,12 +13,15 @@ import DashboardEntryPage from './pages/dashboard/DashboardEntryPage';
 import MyCVPage from './pages/cv/MyCVPage';
 import CVTemplatePage from './pages/cv/CVTemplatePage';
 import CVEditorPage from './pages/cv/CVEditorPage';
+import { ScrollToTop } from './components/common/ScrollToTop';
 
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
+      <ToastProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <ScrollToTop />
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route element={<GuestRoute />}>
@@ -29,6 +33,7 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<DashboardEntryPage />} />
               <Route path="/my-cv" element={<MyCVPage />} />
+              <Route path="/mycv" element={<Navigate to="/my-cv" replace />} />
               <Route path="/cv-templates" element={<CVTemplatePage />} />
               <Route path="/cv-editor/:id" element={<CVEditorPage />} />
               <Route path="/cv-editor/new" element={<CVEditorPage />} />
@@ -37,7 +42,8 @@ function App() {
           </Routes>
         </BrowserRouter>
       </AuthProvider>
-    </ThemeProvider>
+    </ToastProvider>
+  </ThemeProvider>
   );
 }
 

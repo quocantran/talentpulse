@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import {
@@ -28,6 +28,7 @@ import { MobileNoticeModal } from '../../components/cv/MobileNoticeModal';
 import { DownloadCVModal } from '../../components/cv/DownloadCVModal';
 import { CVPreviewCanvas } from '../../components/cv/CVPreviewCanvas';
 import { useAuth } from '../../auth/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { onlineCvApi, userCvApi, fileUploadApi } from '../../lib/cvApi';
 import type { OnlineCV, UserCV } from '../../lib/cvTypes';
 
@@ -68,6 +69,7 @@ function ToggleSwitch({
 export default function MyCVPage() {
   const { t } = useTranslation();
   const { user, accessToken } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
 
   // Data states
@@ -90,8 +92,65 @@ export default function MyCVPage() {
   // Mobile check
   const [isMobileNoticeOpen, setIsMobileNoticeOpen] = useState(false);
   const [isMobileScreen, setIsMobileScreen] = useState(false);
+  const [isUploadHighlighted, setIsUploadHighlighted] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadSectionRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+
+  const triggerScrollToUpload = () => {
+    setTimeout(() => {
+      if (uploadSectionRef.current) {
+        uploadSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setIsUploadHighlighted(true);
+        setTimeout(() => setIsUploadHighlighted(false), 2200);
+      }
+    }, 120);
+  };
+
+  useEffect(() => {
+    const isUploadTarget =
+      location.hash === '#upload' ||
+      location.hash === '#upload-cv' ||
+      location.hash === '#upload-cv-section' ||
+      (location.state as Record<string, unknown> | null)?.scrollTo === 'upload';
+
+    if (isUploadTarget) {
+      triggerScrollToUpload();
+    }
+  }, [location.hash, location.state]);
+
+  const handledToastRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const navState = location.state as {
+      toast?: { type: 'success' | 'error' | 'info'; message: string; description?: string };
+    } | null;
+
+    if (navState?.toast) {
+      const toastKey = `${navState.toast.type}-${navState.toast.message}-${navState.toast.description || ''}`;
+      if (handledToastRef.current !== toastKey) {
+        handledToastRef.current = toastKey;
+        toast.showToast({
+          type: navState.toast.type || 'success',
+          message: navState.toast.message,
+          description: navState.toast.description,
+        });
+        navigate(location.pathname + location.search + location.hash, {
+          replace: true,
+          state: {},
+        });
+      }
+    }
+  }, [location.state, location.pathname, location.search, location.hash, navigate, toast]);
+
+  useEffect(() => {
+    const handleCustomScroll = () => {
+      triggerScrollToUpload();
+    };
+    window.addEventListener('talentpulse:scroll-upload', handleCustomScroll);
+    return () => window.removeEventListener('talentpulse:scroll-upload', handleCustomScroll);
+  }, []);
 
   useEffect(() => {
     const checkScreen = () => {
@@ -262,8 +321,9 @@ export default function MyCVPage() {
     try {
       await onlineCvApi.remove(id, accessToken);
       setOnlineCvs((prev) => prev.filter((c) => c._id !== id));
+      toast.success('Đã xóa CV thành công');
     } catch (err: any) {
-      alert(err.message || 'Không thể xóa CV.');
+      toast.error('Xóa CV thất bại', err.message || 'Không thể xóa CV.');
     }
   };
 
@@ -274,14 +334,14 @@ export default function MyCVPage() {
 
     // Check size < 5MB
     if (file.size > 5 * 1024 * 1024) {
-      alert('Kích thước file không được vượt quá 5MB.');
+      toast.error('Kích thước file quá lớn', 'Kích thước file không được vượt quá 5MB.');
       return;
     }
 
     // Check format (PDF or DOCX)
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext !== 'pdf' && ext !== 'docx' && ext !== 'doc') {
-      alert('Hệ thống chỉ hỗ trợ định dạng file PDF hoặc DOCX.');
+      toast.error('Định dạng file không hỗ trợ', 'Hệ thống chỉ hỗ trợ định dạng file PDF hoặc DOCX.');
       return;
     }
 
@@ -300,9 +360,12 @@ export default function MyCVPage() {
           accessToken,
         );
         void fetchUploadedCvs();
+        toast.success('Tải CV lên thành công!', `File "${file.name}" đã được tải lên và sẵn sàng ứng tuyển.`);
       }
     } catch (err: any) {
-      setUploadError(err.message || 'Không thể tải file lên. Vui lòng thử lại!');
+      const errMsg = err.message || 'Không thể tải file lên. Vui lòng thử lại!';
+      setUploadError(errMsg);
+      toast.error('Tải CV thất bại', errMsg);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -315,8 +378,9 @@ export default function MyCVPage() {
     try {
       await userCvApi.remove(id, accessToken);
       setUploadedCvs((prev) => prev.filter((c) => c._id !== id));
+      toast.success('Đã xóa file CV thành công');
     } catch (err: any) {
-      alert(err.message || 'Không thể xóa file.');
+      toast.error('Xóa file thất bại', err.message || 'Không thể xóa file.');
     }
   };
 
@@ -598,7 +662,15 @@ export default function MyCVPage() {
               </div>
 
               {/* 3. SECTION: CV ĐÃ TẢI LÊN TALENTPULSE */}
-              <div className="rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-7 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <div
+                id="upload-cv-section"
+                ref={uploadSectionRef}
+                className={`rounded-3xl border bg-white p-5 sm:p-7 shadow-xs dark:bg-slate-900 transition-all duration-500 ${
+                  isUploadHighlighted
+                    ? 'border-primary ring-4 ring-primary/20 shadow-lg shadow-primary/10 dark:border-primary-light dark:ring-primary-light/25'
+                    : 'border-slate-200/80 dark:border-slate-800'
+                }`}
+              >
                 {/* Header Row */}
                 <div className="flex items-center justify-between pb-5 mb-5 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2.5">
