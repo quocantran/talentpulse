@@ -4,9 +4,13 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  OnModuleInit,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import { Application, ApplicationStatus } from './entities/application.entity';
 import { CVMatchResult } from 'src/ai-matching/entities/cv-match-result.entity';
 import { IUser } from 'src/users/users.interface';
@@ -31,7 +35,9 @@ import {
 import { CreateNotificationDto } from 'src/notifications/dto/create-notification.dto';
 
 @Injectable()
-export class ApplicationsService {
+export class ApplicationsService implements OnModuleInit {
+  private readonly logger = new Logger(ApplicationsService.name);
+
   constructor(
     @InjectRepository(Application)
     private readonly applicationRepo: Repository<Application>,
@@ -46,7 +52,20 @@ export class ApplicationsService {
     private readonly cvProcessingService: CVProcessingService,
     @Inject(forwardRef(() => JobsService))
     private readonly jobsService: JobsService,
+
+    @InjectQueue('mail-queue')
+    private readonly mailQueue: Queue,
   ) {}
+
+  async onModuleInit() {
+    try {
+      await this.applicationRepo.query(
+        `ALTER TYPE "applications_status_enum" ADD VALUE IF NOT EXISTS 'CONSIDERING';`,
+      );
+    } catch (e) {
+      // Ignore if not supported or already added
+    }
+  }
 
   // User applies for a job with selected CV
   async create(createApplicationDto: CreateApplicationDto, user: IUser) {
@@ -396,7 +415,63 @@ export class ApplicationsService {
     };
   }
 
-  // Update application status (HR/Admin)
+  // Mark application as viewed by HR (transitions from PENDING -> REVIEWING and sends realtime socket notification)
+  async markAsViewed(id: string, user: IUser) {
+    const application = await this.applicationRepo.findOne({
+      where: { _id: id, isDeleted: false },
+      relations: ['job', 'company', 'user'],
+    });
+
+    if (!application) {
+      throw new NotFoundException('Đơn ứng tuyển không tồn tại');
+    }
+
+    if (application.status === ApplicationStatus.PENDING) {
+      const history = application.history || [];
+      history.push({
+        status: ApplicationStatus.REVIEWING,
+        updatedAt: new Date(),
+        updatedBy: {
+          _id: user._id,
+          email: user.email,
+        },
+      });
+
+      await this.applicationRepo.update(id, {
+        status: ApplicationStatus.REVIEWING,
+        history,
+        updatedBy: {
+          _id: user._id,
+          email: user.email,
+        },
+      });
+
+      const notiObj: CreateNotificationDto = {
+        userId: application.userId,
+        title: 'Nhà tuyển dụng đã xem CV của bạn',
+        content: `Nhà tuyển dụng từ công ty ${
+          application.company?.name || 'Doanh nghiệp'
+        } đã mở xem hồ sơ ứng tuyển của bạn cho vị trí ${
+          application.job?.name || ''
+        }.`,
+        type: NotificationType.RESUME,
+        targetType: NotificationTargetType.APPLICATION,
+        targetId: application._id,
+        data: {
+          applicationId: application._id,
+          jobId: application.jobId,
+          companyId: application.companyId,
+          status: ApplicationStatus.REVIEWING,
+        },
+      };
+
+      await this.notificationsService.create(notiObj);
+    }
+
+    return await this.findOne(id);
+  }
+
+  // Update application status (HR/Admin) -> sends realtime socket notification + pushes to Bull Queue for email
   async updateStatus(
     id: string,
     updateDto: UpdateApplicationStatusDto,
@@ -404,7 +479,7 @@ export class ApplicationsService {
   ) {
     const application = await this.applicationRepo.findOne({
       where: { _id: id, isDeleted: false },
-      relations: ['job', 'company'],
+      relations: ['job', 'company', 'user'],
     });
 
     if (!application) {
@@ -441,33 +516,96 @@ export class ApplicationsService {
         applicationId: application._id,
         jobId: application.jobId,
         companyId: application.companyId,
+        status: updateDto.status,
       },
     };
 
     switch (updateDto.status) {
       case ApplicationStatus.REVIEWING:
-        notiObj.title = 'Đơn ứng tuyển của bạn đang được xem xét';
-        notiObj.content = `Đơn ứng tuyển của bạn cho công việc ${
-          application.job?.name || ''
-        } tại công ty ${
+        notiObj.title = 'Nhà tuyển dụng đã xem CV của bạn';
+        notiObj.content = `Nhà tuyển dụng từ công ty ${
           application.company?.name || ''
-        } đã được chuyển sang trạng thái Đang xem xét.`;
+        } đã xem hồ sơ ứng tuyển của bạn cho vị trí ${
+          application.job?.name || ''
+        }.`;
         await this.notificationsService.create(notiObj);
         break;
+
+      case ApplicationStatus.CONSIDERING:
+        notiObj.title = 'Hồ sơ ứng tuyển của bạn đang được Cân nhắc';
+        notiObj.content = `Nhà tuyển dụng từ công ty ${
+          application.company?.name || ''
+        } đã đánh giá CV của bạn cho vị trí ${
+          application.job?.name || ''
+        } là Cân nhắc.`;
+        await this.notificationsService.create(notiObj);
+        break;
+
       case ApplicationStatus.APPROVED:
-        notiObj.title = 'Đơn ứng tuyển của bạn đã được chấp thuận';
-        notiObj.content = `Chúc mừng! Đơn ứng tuyển của bạn cho công việc ${
+        notiObj.title = 'Hồ sơ của bạn được đánh giá Phù hợp';
+        notiObj.content = `Chúc mừng! Nhà tuyển dụng từ công ty ${
+          application.company?.name || ''
+        } đã đánh giá CV của bạn cho vị trí ${
           application.job?.name || ''
-        } tại công ty ${application.company?.name || ''} đã được chấp thuận.`;
+        } là Phù hợp.`;
         await this.notificationsService.create(notiObj);
         break;
+
       case ApplicationStatus.REJECTED:
-        notiObj.title = 'Đơn ứng tuyển của bạn đã bị từ chối';
-        notiObj.content = `Rất tiếc! Đơn ứng tuyển của bạn cho công việc ${
+        notiObj.title = 'Thông báo kết quả ứng tuyển';
+        notiObj.content = `Nhà tuyển dụng từ công ty ${
+          application.company?.name || ''
+        } đã gửi thông báo kết quả cho vị trí ${
           application.job?.name || ''
-        } tại công ty ${application.company?.name || ''} đã bị từ chối.`;
+        }.`;
         await this.notificationsService.create(notiObj);
         break;
+    }
+
+    // Push email job to Bull Queue asynchronously for CONSIDERING, APPROVED, REJECTED
+    if (
+      [
+        ApplicationStatus.CONSIDERING,
+        ApplicationStatus.APPROVED,
+        ApplicationStatus.REJECTED,
+      ].includes(updateDto.status)
+    ) {
+      try {
+        let candidateEmail = application.user?.email;
+        let candidateName = application.user?.name;
+
+        if (!candidateEmail) {
+          const userEntity = await this.usersService.findOne(application.userId);
+          candidateEmail = userEntity?.email;
+          candidateName = userEntity?.name;
+        }
+
+        if (candidateEmail) {
+          await this.mailQueue.add(
+            'send-application-status-email',
+            {
+              candidateEmail,
+              candidateName: candidateName || 'Ứng viên',
+              jobTitle: application.job?.name || 'Vị trí tuyển dụng',
+              companyName: application.company?.name || 'Doanh nghiệp',
+              status: updateDto.status,
+            },
+            {
+              attempts: 3,
+              backoff: {
+                type: 'exponential',
+                delay: 2000,
+              },
+              removeOnComplete: true,
+            },
+          );
+          this.logger.log(
+            `Enqueued application status email for ${candidateEmail} (status: ${updateDto.status})`,
+          );
+        }
+      } catch (err) {
+        this.logger.error(`Failed to enqueue email job: ${err.message}`);
+      }
     }
 
     return await this.findOne(id);

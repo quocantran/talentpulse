@@ -32,6 +32,9 @@ function App() {
             <Route path="/pending-approval" element={<PendingApprovalPage />} />
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<DashboardEntryPage />} />
+              <Route path="/hr/dashboard" element={<Navigate to="/dashboard" replace />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedRoles={['USER', 'ADMIN']} />}>
               <Route path="/my-cv" element={<MyCVPage />} />
               <Route path="/mycv" element={<Navigate to="/my-cv" replace />} />
               <Route path="/cv-templates" element={<CVTemplatePage />} />
@@ -39,6 +42,7 @@ function App() {
               <Route path="/cv-editor/new" element={<CVEditorPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
+
           </Routes>
         </BrowserRouter>
       </AuthProvider>
