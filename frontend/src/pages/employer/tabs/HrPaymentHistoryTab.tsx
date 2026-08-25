@@ -4,6 +4,7 @@ import { useToast } from '../../../context/ToastContext';
 import { paymentApi, PaymentOrder, PaymentStatus } from '../../../lib/paymentApi';
 import { getPaymentSocket } from '../../../lib/socket';
 import { PaymentCountdownBadge } from '../../../components/premium/PaymentCountdownBadge';
+import { formatDateTime } from '../../../lib/dateUtils';
 import {
   Receipt,
   Crown,
@@ -338,8 +339,8 @@ export const HrPaymentHistoryTab: React.FC = () => {
                       {Number(order.amount).toLocaleString('vi-VN')} đ
                     </td>
                     <td className="py-3.5 px-4">{renderStatusBadge(order.status, order.expiresAt)}</td>
-                    <td className="py-3.5 px-4 text-slate-500">
-                      {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                    <td className="py-3.5 px-4 text-slate-500 font-medium">
+                      {formatDateTime(order.createdAt)}
                     </td>
                     <td className="py-3.5 px-4 text-right space-x-1.5">
                       {order.status === 'PENDING' && order.checkoutUrl && (
@@ -418,12 +419,12 @@ export const HrPaymentHistoryTab: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Ngày tạo:</span>
-                  <span>{new Date(selectedOrder.createdAt).toLocaleString('vi-VN')}</span>
+                  <span>{formatDateTime(selectedOrder.createdAt)}</span>
                 </div>
                 {selectedOrder.paidAt && (
                   <div className="flex justify-between">
                     <span className="text-slate-500">Ngày thanh toán:</span>
-                    <span className="font-bold text-emerald-600">{new Date(selectedOrder.paidAt).toLocaleString('vi-VN')}</span>
+                    <span className="font-bold text-emerald-600">{formatDateTime(selectedOrder.paidAt)}</span>
                   </div>
                 )}
                 {selectedOrder.transactionReference && (

@@ -23,6 +23,7 @@ import {
 import { useAuth } from '../../auth/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
+import { formatDate } from '../../lib/dateUtils';
 import { onlineCvApi } from '../../lib/cvApi';
 import { CV_FONTS, CV_THEMES } from '../../lib/cvTypes';
 import type {
@@ -983,7 +984,7 @@ export default function CVEditorPage() {
                         <p className="font-bold truncate">{cv.fullName || 'CV không tên'}</p>
                         <p className="text-[10px] text-slate-400 mt-0.5">
                           {cv.templateType === 'template1' ? 'Mẫu 1' : 'Mẫu 2'} &bull;{' '}
-                          {new Date(cv.createdAt).toLocaleDateString('vi-VN')}
+                          {formatDate(cv.createdAt)}
                         </p>
                       </button>
                     ))

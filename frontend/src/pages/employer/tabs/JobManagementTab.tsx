@@ -19,6 +19,7 @@ import {
 } from '../../../lib/employerApi';
 import { useToast } from '../../../context/ToastContext';
 import { CompanyRequiredGate } from '../components/CompanyRequiredGate';
+import { formatDate } from '../../../lib/dateUtils';
 
 interface JobManagementTabProps {
   company: CompanyInfo | null;
@@ -316,9 +317,9 @@ export function JobManagementTab({
 
                       {/* Dates */}
                       <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">
-                        <div>Hết hạn: <strong className="text-slate-700 dark:text-slate-300">{new Date(job.endDate).toLocaleDateString('vi-VN')}</strong></div>
+                        <div>Hết hạn: <strong className="text-slate-700 dark:text-slate-300">{formatDate(job.endDate)}</strong></div>
                         <div className="text-[11px] text-slate-400 mt-0.5">
-                          Tạo: {new Date(job.createdAt).toLocaleDateString('vi-VN')}
+                          Tạo: {formatDate(job.createdAt)}
                         </div>
                       </td>
 

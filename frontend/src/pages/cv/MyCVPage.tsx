@@ -28,6 +28,7 @@ import {
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import { UserAvatar } from '../../components/common/UserAvatar';
+import { formatDate, formatDateTime, parseDate } from '../../lib/dateUtils';
 import { MobileNoticeModal } from '../../components/cv/MobileNoticeModal';
 import { DownloadCVModal } from '../../components/cv/DownloadCVModal';
 import { CVPreviewCanvas } from '../../components/cv/CVPreviewCanvas';
@@ -989,9 +990,7 @@ export default function MyCVPage() {
                             </h4>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                               {t('cv.updatedOn', 'Cập nhật')}{' '}
-                              {new Date(cv.updatedAt || cv.createdAt)
-                                .toLocaleDateString('vi-VN')
-                                .replace(/\//g, '-')}
+                              {formatDate(cv.updatedAt || cv.createdAt)}
                             </p>
                           </div>
 
@@ -1108,7 +1107,7 @@ export default function MyCVPage() {
                               </h4>
                               <p className="text-[11px] text-slate-400">
                                 {t('cv.uploadedOnDate', 'Tải lên ngày')}{' '}
-                                {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                                {formatDate(item.createdAt)}
                               </p>
                             </div>
                           </div>
@@ -1299,17 +1298,37 @@ export default function MyCVPage() {
                   ) : null}
                 </div>
 
-                <div className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold">
+                <div className="mt-2 flex flex-col items-center gap-1.5 w-full">
                   {user?.isPremium ? (
-                    <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-1 text-amber-700 dark:text-amber-300 font-extrabold flex items-center gap-1">
-                      <Crown className="h-3.5 w-3.5" /> Candidate Premium
-                    </span>
+                    <>
+                      <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-3.5 py-1 text-amber-700 dark:text-amber-300 font-extrabold flex items-center gap-1.5 text-xs shadow-xs">
+                        <Crown className="h-3.5 w-3.5 text-amber-500" /> Candidate Premium
+                      </span>
+                      {user.premiumExpiresAt && (() => {
+                        const exp = parseDate(user.premiumExpiresAt);
+                        if (!exp) return null;
+                        const now = new Date();
+                        const diffDays = Math.max(0, Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                        const formatted = formatDate(exp);
+                        return (
+                          <div className="w-full mt-2 p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center space-y-1">
+                            <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-amber-900 dark:text-amber-300">
+                              <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                              <span>Hạn dùng: {formatted}</span>
+                            </div>
+                            <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                              {diffDays > 0 ? `⏳ Còn lại ${diffDays} ngày hiệu lực` : '⚠️ Hết hạn hôm nay'}
+                            </p>
+                          </div>
+                        );
+                      })()}
+                    </>
                   ) : user?.isVerified ? (
-                    <span className="rounded-full bg-sky-500/15 border border-sky-500/30 px-3 py-1 text-sky-700 dark:text-sky-300 font-extrabold flex items-center gap-1">
+                    <span className="rounded-full bg-sky-500/15 border border-sky-500/30 px-3 py-1 text-sky-700 dark:text-sky-300 font-extrabold flex items-center gap-1 text-xs">
                       <ShieldCheck className="h-3.5 w-3.5 text-sky-600" /> Đã Xác Thực
                     </span>
                   ) : (
-                    <span className="rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1 text-slate-600 dark:text-slate-400 font-medium">
+                    <span className="rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1 text-slate-600 dark:text-slate-400 font-medium text-xs">
                       Tài khoản Thường
                     </span>
                   )}
@@ -1318,10 +1337,18 @@ export default function MyCVPage() {
                 <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                   <Link
                     to="/premium"
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 hover:bg-amber-50 hover:text-amber-600 px-4 py-2 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200 transition cursor-pointer"
+                    className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
+                      user?.isPremium
+                        ? 'bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                        : 'bg-slate-100 hover:bg-amber-50 hover:text-amber-600 text-slate-700 dark:bg-slate-800 dark:text-slate-200'
+                    }`}
                   >
                     <Crown className="h-3.5 w-3.5 text-amber-500" />
-                    <span>{t('cv.upgradeAccount', 'Nâng cấp tài khoản Premium')}</span>
+                    <span>
+                      {user?.isPremium
+                        ? 'Gia hạn / Quyền lợi Premium'
+                        : t('cv.upgradeAccount', 'Nâng cấp tài khoản Premium')}
+                    </span>
                   </Link>
                 </div>
               </div>
@@ -1356,7 +1383,7 @@ export default function MyCVPage() {
                     </p>
                     {boostStatus.boostExpiresAt && (
                       <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                        Hiệu lực đến: {new Date(boostStatus.boostExpiresAt).toLocaleString('vi-VN')}
+                        Hiệu lực đến: {formatDateTime(boostStatus.boostExpiresAt)}
                       </p>
                     )}
                   </div>

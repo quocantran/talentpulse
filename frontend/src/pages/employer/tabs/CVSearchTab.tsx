@@ -12,8 +12,8 @@ import {
   type HrJobItem,
 } from '../../../lib/employerApi';
 import { useToast } from '../../../context/ToastContext';
-
 import { CompanyRequiredGate } from '../components/CompanyRequiredGate';
+import { formatDate } from '../../../lib/dateUtils';
 
 interface CVSearchTabProps {
   accessToken: string | null;
@@ -304,8 +304,8 @@ export function CVSearchTab({
                 </div>
 
                 <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs dark:border-slate-800">
-                  <span className="text-slate-400">
-                    {new Date(res.createdAt).toLocaleDateString('vi-VN')}
+                  <span className="text-slate-400 font-medium">
+                    {formatDate(res.createdAt)}
                   </span>
                   <button
                     type="button"

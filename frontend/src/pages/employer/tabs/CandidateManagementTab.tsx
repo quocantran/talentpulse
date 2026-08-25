@@ -26,8 +26,8 @@ import {
   type CompanyInfo,
 } from '../../../lib/employerApi';
 import { useToast } from '../../../context/ToastContext';
-
 import { CompanyRequiredGate } from '../components/CompanyRequiredGate';
+import { formatDate, formatDateTime } from '../../../lib/dateUtils';
 
 interface CandidateManagementTabProps {
   company: CompanyInfo | null;
@@ -249,7 +249,7 @@ export function CandidateManagementTab({
       `"${app.userId?.email || ''}"`,
       `"${app.jobId?.name || ''}"`,
       app.status,
-      new Date(app.createdAt).toLocaleDateString('vi-VN'),
+      formatDate(app.createdAt),
       `"${app.cvId?.url || ''}"`,
     ]);
 
@@ -457,7 +457,7 @@ export function CandidateManagementTab({
                     </td>
 
                     <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">
-                      {new Date(app.createdAt).toLocaleString('vi-VN')}
+                      {formatDateTime(app.createdAt)}
                     </td>
 
                     <td className="px-6 py-4 text-center">
@@ -567,7 +567,7 @@ export function CandidateManagementTab({
                   <div className="text-right">
                     <div className="text-xs text-slate-500">{t('employer.candidatesTab.colApplyDate')}:</div>
                     <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      {new Date(viewingApp.createdAt).toLocaleDateString('vi-VN')}
+                      {formatDateTime(viewingApp.createdAt)}
                     </div>
                   </div>
                   <div>

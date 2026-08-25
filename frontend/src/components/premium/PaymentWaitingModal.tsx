@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ExternalLink,
@@ -41,9 +41,27 @@ export const PaymentWaitingModal: React.FC<PaymentWaitingModalProps> = ({
   const navigate = useNavigate();
   const [currentStatus, setCurrentStatus] = useState<PaymentStatus>('PENDING');
 
+  // Track whether the countdown has actually started ticking (totalSeconds > 0 observed)
+  // to prevent false expiry on first render before hook processes valid expiresAt
+  const hasStartedCountdown = useRef(false);
+
   const { formatted, isExpired, totalSeconds } = useCountdown(
     paymentInfo?.expiresAt
   );
+
+  // Mark that countdown has genuinely started once we observe totalSeconds > 0
+  useEffect(() => {
+    if (totalSeconds > 0) {
+      hasStartedCountdown.current = true;
+    }
+  }, [totalSeconds]);
+
+  // Reset the ref when modal opens with new payment
+  useEffect(() => {
+    if (isOpen && paymentInfo) {
+      hasStartedCountdown.current = false;
+    }
+  }, [isOpen, paymentInfo?.orderCode]);
 
   // Total TTL assumption: 15 minutes (900 seconds) for circle progress percentage
   const totalDuration = 900;
@@ -92,10 +110,11 @@ export const PaymentWaitingModal: React.FC<PaymentWaitingModalProps> = ({
   }, [isOpen, paymentInfo?.orderCode, user?._id]);
 
   // Immediately expire and cancel on PayOS gateway when countdown hits 00:00
+  // Guard: only fire if the countdown has actually been running (hasStartedCountdown)
   useEffect(() => {
     if (!isOpen || !paymentInfo || currentStatus !== 'PENDING') return;
 
-    if (isExpired) {
+    if (isExpired && hasStartedCountdown.current) {
       setCurrentStatus('EXPIRED');
       if (accessToken) {
         paymentApi

@@ -26,6 +26,7 @@ import {
   type PendingHrRequest,
 } from '../../../lib/employerApi';
 import { useToast } from '../../../context/ToastContext';
+import { formatDate } from '../../../lib/dateUtils';
 import { useAuth } from '../../../auth/AuthContext';
 import { RichTextEditor } from '../../../components/common/RichTextEditor';
 
@@ -758,7 +759,7 @@ export function CompanyProfileTab({
                           {req.name}
                         </h4>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {req.email} &bull; Ngày gửi: {new Date(req.requestedAt).toLocaleDateString('vi-VN')}
+                          {req.email} &bull; Ngày gửi: {formatDate(req.requestedAt)}
                         </p>
                       </div>
                     </div>
@@ -868,7 +869,7 @@ export function CompanyProfileTab({
                             </span>
                           </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            {member.email} &bull; Gia nhập: {new Date(member.createdAt).toLocaleDateString('vi-VN')}
+                            {member.email} &bull; Gia nhập: {formatDate(member.createdAt)}
                           </p>
                         </div>
                       </div>

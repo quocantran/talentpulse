@@ -21,7 +21,9 @@ import {
   KeyRound,
   Settings2,
   Receipt,
+  Clock,
 } from 'lucide-react';
+import { formatDate, parseDate } from '../../lib/dateUtils';
 import { useAuth } from '../../auth/AuthContext';
 import { UserAvatar } from '../common/UserAvatar';
 
@@ -165,28 +167,43 @@ export function UserDropdownMenu() {
                       </h3>
                     </div>
 
-                    <div className="mt-1 flex items-center gap-1.5 text-[13px]">
+                    <div className="mt-1 flex flex-col gap-1 text-[13px]">
                       {user.isPremium ? (
                         <>
-                          <Crown className="h-4 w-4 text-amber-500 shrink-0" />
-                          <span className="font-extrabold text-amber-600 dark:text-amber-400">
-                            {user.role === 'HR' ? 'HR Premium' : 'Candidate Premium'}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <Crown className="h-4 w-4 text-amber-500 shrink-0" />
+                            <span className="font-extrabold text-amber-600 dark:text-amber-400">
+                              {user.role === 'HR' ? 'HR Premium' : 'Candidate Premium'}
+                            </span>
+                          </div>
+                          {user.premiumExpiresAt && (() => {
+                            const exp = parseDate(user.premiumExpiresAt);
+                            if (!exp) return null;
+                            const now = new Date();
+                            const diffDays = Math.max(0, Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                            const formatted = formatDate(exp);
+                            return (
+                              <div className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:text-amber-300 w-fit">
+                                <Clock className="h-3 w-3 text-amber-500 shrink-0" />
+                                <span>Hạn dùng: <strong>{formatted}</strong> ({diffDays > 0 ? `Còn ${diffDays} ngày` : 'Hết hạn'})</span>
+                              </div>
+                            );
+                          })()}
                         </>
                       ) : user.isVerified ? (
-                        <>
+                        <div className="flex items-center gap-1.5">
                           <ShieldCheck className="h-4 w-4 text-sky-500 shrink-0" />
                           <span className="font-semibold text-sky-600 dark:text-sky-400">
                             {t('userMenu.verifiedAccount', 'Tài khoản đã xác thực')}
                           </span>
-                        </>
+                        </div>
                       ) : (
-                        <>
+                        <div className="flex items-center gap-1.5">
                           <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" />
                           <span className="font-medium text-slate-500 dark:text-slate-400">
                             Tài khoản thường (Chưa xác thực)
                           </span>
-                        </>
+                        </div>
                       )}
                     </div>
 
@@ -393,10 +410,23 @@ export function UserDropdownMenu() {
                       <Link
                         to={user.role === 'HR' ? '/dashboard?tab=premium' : '/premium'}
                         onClick={() => setIsOpen(false)}
-                        className="flex items-center gap-2.5 py-2 font-bold text-amber-600 dark:text-amber-400 hover:underline transition-colors"
+                        className="flex items-center justify-between py-2 font-bold text-amber-600 dark:text-amber-400 hover:underline transition-colors"
                       >
-                        <Crown className="h-4 w-4" />
-                        <span>{user.role === 'HR' ? t('userMenu.hrPremium', 'Gói HR Premium') : t('userMenu.candidatePremium', 'Gói Candidate Premium')}</span>
+                        <div className="flex items-center gap-2">
+                          <Crown className="h-4 w-4" />
+                          <span>{user.role === 'HR' ? t('userMenu.hrPremium', 'Gói HR Premium') : t('userMenu.candidatePremium', 'Gói Candidate Premium')}</span>
+                        </div>
+                        {user.isPremium && user.premiumExpiresAt && (() => {
+                          const exp = parseDate(user.premiumExpiresAt);
+                          if (!exp) return null;
+                          const now = new Date();
+                          const diffDays = Math.max(0, Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                          return (
+                            <span className="text-[10.5px] font-extrabold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25">
+                              {diffDays > 0 ? `Còn ${diffDays}d` : 'Hết hạn'}
+                            </span>
+                          );
+                        })()}
                       </Link>
 
                       <Link

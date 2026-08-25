@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { employerApi, type NotificationItem } from '../../../lib/employerApi';
 import { useToast } from '../../../context/ToastContext';
+import { formatDateTime } from '../../../lib/dateUtils';
 
 interface NotificationsTabProps {
   accessToken: string | null;
@@ -170,7 +171,7 @@ export function NotificationsTab({ accessToken, onRefreshStats }: NotificationsT
                     {item.content}
                   </p>
                   <span className="text-[11px] text-slate-400 block pt-1">
-                    {new Date(item.createdAt).toLocaleString('vi-VN')}
+                    {formatDateTime(item.createdAt)}
                   </span>
                 </div>
               </div>

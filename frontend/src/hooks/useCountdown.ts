@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { parseDate } from '../lib/dateUtils';
 
 export interface UseCountdownReturn {
   minutes: number;
@@ -11,25 +12,29 @@ export interface UseCountdownReturn {
 export function useCountdown(targetDate?: string | Date | null): UseCountdownReturn {
   const calculateRemaining = () => {
     if (!targetDate) {
+      // No target date = countdown not started yet, NOT expired
       return {
         minutes: 0,
         seconds: 0,
         totalSeconds: 0,
-        formatted: '00:00',
-        isExpired: true,
+        formatted: '--:--',
+        isExpired: false,
       };
     }
 
-    const targetTime = typeof targetDate === 'string' ? new Date(targetDate).getTime() : targetDate.getTime();
-    if (isNaN(targetTime)) {
+    const parsed = parseDate(targetDate);
+    if (!parsed) {
+      // Invalid date = treat as not started, NOT expired
       return {
         minutes: 0,
         seconds: 0,
         totalSeconds: 0,
-        formatted: '00:00',
-        isExpired: true,
+        formatted: '--:--',
+        isExpired: false,
       };
     }
+
+    const targetTime = parsed.getTime();
 
     const now = Date.now();
     const remainingMs = Math.max(0, targetTime - now);

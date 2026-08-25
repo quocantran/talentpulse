@@ -7,6 +7,7 @@ import { useToast } from '../../context/ToastContext';
 import { paymentApi, PaymentOrder, PaymentStatus } from '../../lib/paymentApi';
 import { getPaymentSocket } from '../../lib/socket';
 import { PaymentCountdownBadge } from '../../components/premium/PaymentCountdownBadge';
+import { formatDateTime, formatDate } from '../../lib/dateUtils';
 import {
   Receipt,
   Crown,
@@ -289,7 +290,7 @@ export default function PaymentHistoryPage() {
                 </h4>
                 <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
                   {user?.isPremium && user?.premiumExpiresAt
-                    ? `Hạn dùng: ${new Date(user.premiumExpiresAt).toLocaleDateString('vi-VN')}`
+                    ? `Hạn dùng: ${formatDate(user.premiumExpiresAt)}`
                     : 'Chưa nâng cấp Premium'}
                 </p>
               </div>
@@ -466,14 +467,8 @@ export default function PaymentHistoryPage() {
                           <td className="py-4 px-4">{renderStatusBadge(order.status, order.expiresAt)}</td>
 
                           {/* Created Date */}
-                          <td className="py-4 px-4 text-slate-500">
-                            {new Date(order.createdAt).toLocaleString('vi-VN', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                            })}
+                          <td className="py-4 px-4 text-slate-500 font-medium">
+                            {formatDateTime(order.createdAt)}
                           </td>
 
                           {/* Actions */}
@@ -577,14 +572,14 @@ export default function PaymentHistoryPage() {
                 <div className="flex justify-between">
                   <span className="text-slate-500">Ngày tạo đơn:</span>
                   <span className="font-medium text-slate-700 dark:text-slate-300">
-                    {new Date(selectedOrder.createdAt).toLocaleString('vi-VN')}
+                    {formatDateTime(selectedOrder.createdAt)}
                   </span>
                 </div>
                 {selectedOrder.paidAt && (
                   <div className="flex justify-between">
                     <span className="text-slate-500">Ngày thanh toán:</span>
                     <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                      {new Date(selectedOrder.paidAt).toLocaleString('vi-VN')}
+                      {formatDateTime(selectedOrder.paidAt)}
                     </span>
                   </div>
                 )}
