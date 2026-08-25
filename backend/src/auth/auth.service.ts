@@ -277,6 +277,9 @@ export class AuthService {
       avatar: user.avatar,
       company: user.company,
       isApproved: user.isApproved,
+      isPremium: user.isPremium || false,
+      premiumPlan: user.premiumPlan || 'FREE',
+      premiumExpiresAt: user.premiumExpiresAt || undefined,
     };
   }
 

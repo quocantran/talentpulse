@@ -70,12 +70,12 @@ export default function Header() {
             {/* CV Dropdown Menu (Replaces AI Matching) */}
             <CVDropdownMenu />
 
-            <a
-              href="/#premium"
+            <Link
+              to={status === 'authenticated' ? (user?.role === 'HR' ? '/dashboard?tab=premium' : '/premium') : '/login'}
               className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary-light rounded-lg hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-all duration-200"
             >
               {t('nav.premium')}
-            </a>
+            </Link>
           </nav>
 
           {/* Right Actions */}
@@ -226,13 +226,13 @@ export default function Header() {
               </Link>
             </div>
 
-            <a
-              href="/#premium"
+            <Link
+              to={status === 'authenticated' ? (user?.role === 'HR' ? '/dashboard?tab=premium' : '/premium') : '/login'}
               onClick={() => setMobileMenuOpen(false)}
               className="block px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
             >
               {t('nav.premium')}
-            </a>
+            </Link>
 
             {/* Auth CTAs */}
             <div className="pt-3 border-t border-gray-200/60 dark:border-slate-700 flex flex-col gap-2">

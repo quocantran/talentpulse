@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { LanguageSwitcher } from '../../components/common/LanguageSwitcher';
+import EmployerDashboardPage from '../employer/EmployerDashboardPage';
 
 export default function DashboardEntryPage() {
   const { t } = useTranslation();
@@ -17,6 +18,12 @@ export default function DashboardEntryPage() {
   };
 
   if (!user) return null;
+
+  // HR users get full Employer Dashboard portal
+  if (user.role === 'HR') {
+    return <EmployerDashboardPage />;
+  }
+
 
   const roleConfig = {
     USER: {

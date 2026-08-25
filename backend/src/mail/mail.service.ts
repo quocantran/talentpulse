@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { Subscriber } from 'src/subscribers/entities/subscriber.entity';
 import { Job } from 'src/jobs/entities/job.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { ApplicationStatus } from 'src/applications/entities/application.entity';
 
 @Injectable()
 export class MailService {
@@ -60,6 +61,43 @@ export class MailService {
       template: 'welcome',
       context: {
         name,
+      },
+    });
+  }
+
+  // Send application status notification email (Suitable, Considering, Unsuitable)
+  async sendApplicationStatusEmail(data: {
+    candidateEmail: string;
+    candidateName: string;
+    jobTitle: string;
+    companyName: string;
+    status: ApplicationStatus;
+    note?: string;
+  }) {
+    const isApproved = data.status === ApplicationStatus.APPROVED;
+    const isConsidering = data.status === ApplicationStatus.CONSIDERING;
+    const isRejected = data.status === ApplicationStatus.REJECTED;
+
+    let statusText = 'Phù hợp';
+    if (isConsidering) statusText = 'Cân nhắc';
+    if (isRejected) statusText = 'Chưa phù hợp';
+
+    const subject = `[TalentPulse] Thông báo kết quả tuyển dụng vị trí ${data.jobTitle} - ${data.companyName}`;
+
+    await this.mailerService.sendMail({
+      to: data.candidateEmail,
+      subject,
+      template: 'application-status',
+      context: {
+        candidateName: data.candidateName || 'Bạn',
+        jobTitle: data.jobTitle,
+        companyName: data.companyName,
+        statusText,
+        isApproved,
+        isConsidering,
+        isRejected,
+        note: data.note,
+        myCvLink: `${process.env.URL_FRONTEND || 'http://localhost:5173'}/cv`,
       },
     });
   }

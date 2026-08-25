@@ -39,6 +39,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       address: user.address,
       avatar: user.avatar,
       isApproved: user.isApproved,
+      isPremium: user.isPremium || false,
+      premiumPlan: user.premiumPlan || 'FREE',
+      premiumExpiresAt: user.premiumExpiresAt || undefined,
     } as IUser;
   }
 }

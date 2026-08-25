@@ -372,14 +372,14 @@ export function UserDropdownMenu() {
 
                   {openSections.upgrade && (
                     <div className="ml-10 mt-1 space-y-0.5 border-l-2 border-slate-100 dark:border-slate-800 pl-4 pb-1 text-[14px]">
-                      <a
-                        href="#premium"
+                      <Link
+                        to={user.role === 'HR' ? '/dashboard?tab=premium' : '/premium'}
                         onClick={() => setIsOpen(false)}
                         className="flex items-center gap-2.5 py-2 font-bold text-amber-600 dark:text-amber-400 hover:underline transition-colors"
                       >
                         <Crown className="h-4 w-4" />
-                        <span>{user.role === 'HR' ? t('userMenu.hrPremium') : t('userMenu.candidatePremium')}</span>
-                      </a>
+                        <span>{user.role === 'HR' ? t('userMenu.hrPremium', 'Gói HR Premium') : t('userMenu.candidatePremium', 'Gói Candidate Premium')}</span>
+                      </Link>
                     </div>
                   )}
                 </div>

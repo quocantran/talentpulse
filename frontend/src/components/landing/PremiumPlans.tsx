@@ -1,12 +1,28 @@
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth/AuthContext';
 
 export default function PremiumPlans() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { user, status } = useAuth();
 
   const candidateFeatures = t('premium.candidate.features', { returnObjects: true }) as string[];
   const hrFeatures = t('premium.hr.features', { returnObjects: true }) as string[];
+
+  const handleAction = (target: 'candidate' | 'hr') => {
+    if (status !== 'authenticated') {
+      navigate('/login');
+      return;
+    }
+    if (user?.role === 'HR' || target === 'hr') {
+      navigate('/dashboard?tab=premium');
+    } else {
+      navigate('/premium');
+    }
+  };
 
   return (
     <section id="premium" className="bg-slate-50 dark:bg-slate-900 py-20 lg:py-28 overflow-hidden relative">
@@ -60,7 +76,10 @@ export default function PremiumPlans() {
                   </li>
                 ))}
               </ul>
-              <button className="w-full py-3 text-sm font-semibold text-primary border-2 border-primary/30 hover:bg-primary hover:text-white rounded-xl transition-all duration-300 active:scale-95 cursor-pointer">
+              <button
+                onClick={() => handleAction('candidate')}
+                className="w-full py-3 text-sm font-semibold text-primary border-2 border-primary/30 hover:bg-primary hover:text-white rounded-xl transition-all duration-300 active:scale-95 cursor-pointer"
+              >
                 {t('premium.candidate.cta')}
               </button>
             </div>
@@ -96,7 +115,10 @@ export default function PremiumPlans() {
                   </li>
                 ))}
               </ul>
-              <button className="w-full py-3 text-sm font-semibold text-primary bg-white hover:bg-white/90 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer shadow-sm">
+              <button
+                onClick={() => handleAction('hr')}
+                className="w-full py-3 text-sm font-semibold text-primary bg-white hover:bg-white/90 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer shadow-sm"
+              >
                 {t('premium.hr.cta')}
               </button>
             </div>

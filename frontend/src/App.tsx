@@ -13,6 +13,8 @@ import DashboardEntryPage from './pages/dashboard/DashboardEntryPage';
 import MyCVPage from './pages/cv/MyCVPage';
 import CVTemplatePage from './pages/cv/CVTemplatePage';
 import CVEditorPage from './pages/cv/CVEditorPage';
+import EmployerDashboardPage from './pages/employer/EmployerDashboardPage';
+import PremiumPage from './pages/premium/PremiumPage';
 import { ScrollToTop } from './components/common/ScrollToTop';
 
 function App() {
@@ -32,6 +34,20 @@ function App() {
             <Route path="/pending-approval" element={<PendingApprovalPage />} />
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<DashboardEntryPage />} />
+              <Route path="/hr/dashboard" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/premium" element={<PremiumPage />} />
+              <Route path="/pricing" element={<Navigate to="/premium" replace />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedRoles={['HR', 'ADMIN']} />}>
+              <Route path="/hr/jobs/create" element={<EmployerDashboardPage />} />
+              <Route path="/hr/jobs/new" element={<Navigate to="/hr/jobs/create" replace />} />
+              <Route path="/hr/jobs/edit/:id" element={<EmployerDashboardPage />} />
+              <Route path="/employer/jobs/create" element={<Navigate to="/hr/jobs/create" replace />} />
+              <Route path="/employer/jobs/edit/:id" element={<EmployerDashboardPage />} />
+              <Route path="/hr/premium" element={<EmployerDashboardPage />} />
+              <Route path="/employer/premium" element={<EmployerDashboardPage />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedRoles={['USER', 'ADMIN']} />}>
               <Route path="/my-cv" element={<MyCVPage />} />
               <Route path="/mycv" element={<Navigate to="/my-cv" replace />} />
               <Route path="/cv-templates" element={<CVTemplatePage />} />
@@ -39,6 +55,7 @@ function App() {
               <Route path="/cv-editor/new" element={<CVEditorPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
+
           </Routes>
         </BrowserRouter>
       </AuthProvider>

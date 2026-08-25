@@ -9,7 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike } from 'typeorm';
 import { RegisterUserDto } from './dto/create-user.dto';
 import { UpdateUserDto, UpdateUserPasswordDto } from './dto/update-user.dto';
-import { User } from './entities/user.entity';
+import { User, PremiumPlan } from './entities/user.entity';
 import { Company } from 'src/companies/entities/company.entity';
 import * as bcrypt from 'bcryptjs';
 import aqp from 'api-query-params';
@@ -140,19 +140,18 @@ export class UsersService {
   }
 
   async findByCompanyId(companyId: string) {
-    return await this.userRepo
-      .createQueryBuilder('user')
-      .where("user.company->>'_id' = :companyId", { companyId })
-      .andWhere('user.isDeleted = :isDeleted', { isDeleted: false })
-      .getOne();
+    const rows = await this.userRepo.query(
+      `SELECT * FROM users WHERE company->>'_id' = $1 AND "isDeleted" = false LIMIT 1`,
+      [companyId],
+    );
+    return rows && rows.length > 0 ? rows[0] : null;
   }
 
   async findAllByCompanyId(companyId: string) {
-    return await this.userRepo
-      .createQueryBuilder('user')
-      .where("user.company->>'_id' = :companyId", { companyId })
-      .andWhere('user.isDeleted = :isDeleted', { isDeleted: false })
-      .getMany();
+    return await this.userRepo.query(
+      `SELECT * FROM users WHERE company->>'_id' = $1 AND "isDeleted" = false ORDER BY "createdAt" ASC`,
+      [companyId],
+    );
   }
 
   async findOne(id: string) {
@@ -197,7 +196,7 @@ export class UsersService {
 
   async updateUserCompany(
     userId: string,
-    company: { _id: string; name: string },
+    company: { _id: string; name: string; isActive?: boolean },
   ) {
     return await this.userRepo.update(userId, { company });
   }
@@ -257,9 +256,15 @@ export class UsersService {
       }
       if (company.createdBy?._id?.toString() !== requester._id.toString()) {
         throw new BadRequestException(
-          'Chỉ người tạo công ty mới có quyền xóa HR khác',
+          'Chỉ HR Trưởng (người tạo công ty) mới có quyền xóa HR khác khỏi công ty',
         );
       }
+    }
+
+    if (hrId === requester._id.toString()) {
+      throw new BadRequestException(
+        'HR Trưởng không thể tự xóa chính mình khỏi công ty',
+      );
     }
 
     const hr = await this.userRepo.findOne({
@@ -301,7 +306,7 @@ export class UsersService {
 
     if (company.createdBy?._id?.toString() === user._id.toString()) {
       throw new BadRequestException(
-        'Người tạo công ty không thể rời công ty. Hãy chuyển quyền hoặc xóa công ty.',
+        'HR Trưởng (người tạo công ty) không được quyền rời công ty. Hãy chuyển giao quyền quản lý hoặc giải thể công ty.',
       );
     }
 
@@ -391,6 +396,35 @@ export class UsersService {
       },
     });
 
+    // If HR registered with company information and has no company yet, automatically create company active
+    if (user.registrationCompany?.name && !user.company) {
+      const existingCompany = await this.companyRepo.findOne({
+        where: { name: user.registrationCompany.name },
+      });
+
+      if (!existingCompany) {
+        const newCompany = this.companyRepo.create({
+          name: user.registrationCompany.name,
+          taxCode: user.registrationCompany.taxCode || '',
+          scale: user.registrationCompany.scale || '',
+          isActive: true,
+          createdBy: {
+            _id: user._id,
+            email: user.email,
+          },
+        });
+        const savedCompany = await this.companyRepo.save(newCompany);
+
+        await this.userRepo.update(userId, {
+          company: {
+            _id: savedCompany._id.toString(),
+            name: savedCompany.name,
+            isActive: true,
+          },
+        });
+      }
+    }
+
     return { message: 'Duyệt tài khoản HR thành công' };
   }
 
@@ -467,5 +501,89 @@ export class UsersService {
       },
       result: sanitizedUsers,
     };
+  }
+
+  /**
+   * Kiểm tra xem người dùng có đang sở hữu gói Premium hợp lệ (hoặc là ADMIN) không
+   */
+  isUserPremium(user: User | IUser | any): boolean {
+    if (!user) return false;
+    if (user.role === Role.ADMIN) return true;
+    if (!user.isPremium) return false;
+    if (!user.premiumExpiresAt) return true; // Gói vĩnh viễn hoặc chưa hết hạn
+    return new Date(user.premiumExpiresAt) > new Date();
+  }
+
+  /**
+   * Kiểm tra xem tài khoản có quyền HR Premium (hoặc Admin) không
+   */
+  isHrPremium(user: User | IUser | any): boolean {
+    if (!user) return false;
+    if (user.role === Role.ADMIN) return true;
+    if (!this.isUserPremium(user)) return false;
+    return user.premiumPlan === PremiumPlan.HR_PREMIUM;
+  }
+
+  /**
+   * Kiểm tra xem ứng viên có quyền Candidate Premium không
+   */
+  isCandidatePremium(user: User | IUser | any): boolean {
+    if (!user) return false;
+    if (user.role === Role.ADMIN) return true;
+    if (!this.isUserPremium(user)) return false;
+    return user.premiumPlan === PremiumPlan.CANDIDATE_PREMIUM;
+  }
+
+  /**
+   * Lấy giới hạn số lượng tin tuyển dụng tối đa được đăng trong 1 ngày
+   * - HR Standard (Free): 5 tin/ngày
+   * - HR Premium / Admin: Không giới hạn (999999)
+   */
+  getUserMaxDailyJobs(user: User | IUser | any): number {
+    if (!user) return 5;
+    if (this.isHrPremium(user)) {
+      return 999999;
+    }
+    return 5;
+  }
+
+  /**
+   * Nâng cấp gói Premium cho người dùng
+   */
+  async upgradePremiumPlan(
+    userId: string,
+    plan: string,
+    durationDays: number,
+  ): Promise<any> {
+    const user = await this.userRepo.findOne({ where: { _id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const now = new Date();
+    const currentExpiry =
+      user.premiumExpiresAt && new Date(user.premiumExpiresAt) > now
+        ? new Date(user.premiumExpiresAt)
+        : now;
+
+    const newExpiry = new Date(
+      currentExpiry.getTime() + durationDays * 24 * 60 * 60 * 1000,
+    );
+
+    user.isPremium = true;
+    user.premiumPlan = plan as any;
+    user.premiumExpiresAt = newExpiry;
+
+    const savedUser = await this.userRepo.save(user);
+
+    if (user.company?._id && plan === PremiumPlan.HR_PREMIUM) {
+      await this.companyRepo.update(user.company._id, {
+        isPremium: true,
+        premiumExpiresAt: newExpiry,
+      });
+    }
+
+    const { password, refreshToken, ...rest } = savedUser;
+    return rest;
   }
 }
