@@ -51,6 +51,19 @@ export const onlineCvApi = {
       body: { htmlContent, isPremium },
       accessToken,
     }),
+
+  setPrimary: (id: string, accessToken?: string | null) =>
+    apiRequest<OnlineCV>(`/online-cvs/${id}/set-primary`, {
+      method: 'PATCH',
+      accessToken,
+    }),
+
+  toggleSearchable: (id: string, isSearchable?: boolean, accessToken?: string | null) =>
+    apiRequest<{ _id: string; isSearchable: boolean; message: string }>(`/online-cvs/${id}/searchable`, {
+      method: 'PATCH',
+      body: { isSearchable },
+      accessToken,
+    }),
 };
 
 export const userCvApi = {
@@ -69,6 +82,13 @@ export const userCvApi = {
   setPrimary: (id: string, accessToken?: string | null) =>
     apiRequest<UserCV>(`/user-cvs/${id}/set-primary`, {
       method: 'PATCH',
+      accessToken,
+    }),
+
+  toggleSearchable: (id: string, isSearchable?: boolean, accessToken?: string | null) =>
+    apiRequest<{ _id: string; isSearchable: boolean; message: string }>(`/user-cvs/${id}/searchable`, {
+      method: 'PATCH',
+      body: { isSearchable },
       accessToken,
     }),
 

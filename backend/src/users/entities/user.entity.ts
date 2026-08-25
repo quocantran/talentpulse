@@ -75,6 +75,15 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   boostExpiresAt: Date;
 
+  @Column({ default: true })
+  isJobSeeking: boolean;
+
+  @Column({ default: true })
+  isJobRecommendation: boolean;
+
+  @Column({ default: true })
+  allowRecruiterSearch: boolean;
+
   @Column({ nullable: true })
   refreshToken: string;
 

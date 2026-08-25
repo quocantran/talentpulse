@@ -10,6 +10,7 @@ import {
   Edit,
   Trash2,
   Loader2,
+  Crown,
 } from 'lucide-react';
 import {
   employerApi,
@@ -172,6 +173,18 @@ export function JobManagementTab({
               </span>
             </div>
           </div>
+
+          {/* Upgrade to HR Premium CTA when on Free quota */}
+          {maxDailyJobs < 999 && (
+            <button
+              type="button"
+              onClick={() => onNavigateTab('premium')}
+              className="inline-flex items-center gap-1.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 px-4 py-2.5 text-xs font-extrabold text-white shadow-md shadow-amber-500/20 active:scale-95 transition cursor-pointer"
+            >
+              <Crown className="h-4 w-4" />
+              <span>Nâng cấp HR Premium</span>
+            </button>
+          )}
 
           {/* Post Job CTA */}
           <button

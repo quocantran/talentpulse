@@ -98,6 +98,7 @@ export default function MyCVPage() {
   // Toggles
   const [jobSeekingActive, setJobSeekingActive] = useState(true);
   const [jobRecommendationActive, setJobRecommendationActive] = useState(true);
+  const [allowRecruiterSearchActive, setAllowRecruiterSearchActive] = useState(true);
   const [searchableMap, setSearchableMap] = useState<Record<string, boolean>>({});
 
   // Mobile check
@@ -179,6 +180,21 @@ export default function MyCVPage() {
     };
   }, []);
 
+  // Fetch candidate settings
+  const fetchSettings = async () => {
+    if (!accessToken) return;
+    try {
+      const res = await candidateApi.getSettings(accessToken);
+      if (res) {
+        setJobSeekingActive(res.isJobSeeking ?? true);
+        setJobRecommendationActive(res.isJobRecommendation ?? true);
+        setAllowRecruiterSearchActive(res.allowRecruiterSearch ?? true);
+      }
+    } catch (err) {
+      console.error('Error fetching candidate settings:', err);
+    }
+  };
+
   // Fetch online CVs
   const fetchOnlineCvs = async () => {
     if (!accessToken) return;
@@ -186,12 +202,13 @@ export default function MyCVPage() {
     try {
       const data = await onlineCvApi.findAll(accessToken);
       setOnlineCvs(data || []);
-      // Initialize searchable map
-      const initialMap: Record<string, boolean> = {};
-      (data || []).forEach((c) => {
-        initialMap[c._id] = true;
+      setSearchableMap((prev) => {
+        const next = { ...prev };
+        (data || []).forEach((c) => {
+          next[c._id] = c.isSearchable ?? true;
+        });
+        return next;
       });
-      setSearchableMap(initialMap);
     } catch (err) {
       console.error('Error fetching online CVs:', err);
     } finally {
@@ -206,6 +223,13 @@ export default function MyCVPage() {
     try {
       const data = await userCvApi.findAll(accessToken);
       setUploadedCvs(data || []);
+      setSearchableMap((prev) => {
+        const next = { ...prev };
+        (data || []).forEach((c) => {
+          next[c._id] = c.isSearchable ?? true;
+        });
+        return next;
+      });
     } catch (err) {
       console.error('Error fetching uploaded CVs:', err);
     } finally {
@@ -226,11 +250,159 @@ export default function MyCVPage() {
 
   useEffect(() => {
     if (accessToken) {
+      void fetchSettings();
       void fetchOnlineCvs();
       void fetchUploadedCvs();
       void fetchBoostStatus();
     }
   }, [accessToken]);
+
+  // Toggle handlers with instant optimistic UI + backend sync
+  const handleToggleOnlineCvSearchable = async (cvId: string, currentVal: boolean) => {
+    if (!accessToken) return;
+    const newVal = !currentVal;
+    setSearchableMap((prev) => ({ ...prev, [cvId]: newVal }));
+    try {
+      await onlineCvApi.toggleSearchable(cvId, newVal, accessToken);
+      toast.showToast({
+        type: 'success',
+        message: newVal
+          ? 'Đã bật cho phép NTD tìm kiếm CV này'
+          : 'Đã tắt cho phép NTD tìm kiếm CV này',
+      });
+    } catch (err: any) {
+      setSearchableMap((prev) => ({ ...prev, [cvId]: currentVal }));
+      toast.showToast({
+        type: 'error',
+        message: err?.message || 'Không thể cập nhật trạng thái tìm kiếm của CV',
+      });
+    }
+  };
+
+  const handleToggleUploadedCvSearchable = async (cvId: string, currentVal: boolean) => {
+    if (!accessToken) return;
+    const newVal = !currentVal;
+    setSearchableMap((prev) => ({ ...prev, [cvId]: newVal }));
+    try {
+      await userCvApi.toggleSearchable(cvId, newVal, accessToken);
+      toast.showToast({
+        type: 'success',
+        message: newVal
+          ? 'Đã bật cho phép NTD tìm kiếm CV này'
+          : 'Đã tắt cho phép NTD tìm kiếm CV này',
+      });
+    } catch (err: any) {
+      setSearchableMap((prev) => ({ ...prev, [cvId]: currentVal }));
+      toast.showToast({
+        type: 'error',
+        message: err?.message || 'Không thể cập nhật trạng thái tìm kiếm của CV',
+      });
+    }
+  };
+
+  const handleToggleJobSeeking = async (val: boolean) => {
+    setJobSeekingActive(val);
+    if (!accessToken) return;
+    try {
+      await candidateApi.updateSettings({ isJobSeeking: val }, accessToken);
+      toast.showToast({
+        type: 'success',
+        message: val ? 'Đã bật trạng thái tìm việc' : 'Đã tắt trạng thái tìm việc',
+      });
+    } catch (err: any) {
+      setJobSeekingActive(!val);
+      toast.showToast({
+        type: 'error',
+        message: err?.message || 'Lỗi cập nhật cài đặt',
+      });
+    }
+  };
+
+  const handleToggleJobRecommendation = async (val: boolean) => {
+    setJobRecommendationActive(val);
+    if (!accessToken) return;
+    try {
+      await candidateApi.updateSettings({ isJobRecommendation: val }, accessToken);
+      toast.showToast({
+        type: 'success',
+        message: val ? 'Đã bật gợi ý việc làm' : 'Đã tắt gợi ý việc làm',
+      });
+    } catch (err: any) {
+      setJobRecommendationActive(!val);
+      toast.showToast({
+        type: 'error',
+        message: err?.message || 'Lỗi cập nhật cài đặt',
+      });
+    }
+  };
+
+  const handleToggleAllowRecruiterSearch = async (val: boolean) => {
+    setAllowRecruiterSearchActive(val);
+    if (!accessToken) return;
+    try {
+      await candidateApi.updateSettings({ allowRecruiterSearch: val }, accessToken);
+      toast.showToast({
+        type: 'success',
+        message: val
+          ? 'Đã bật cho phép NTD tìm kiếm hồ sơ của bạn'
+          : 'Đã tắt cho phép NTD tìm kiếm hồ sơ của bạn',
+      });
+    } catch (err: any) {
+      setAllowRecruiterSearchActive(!val);
+      toast.showToast({
+        type: 'error',
+        message: err?.message || 'Lỗi cập nhật cài đặt',
+      });
+    }
+  };
+
+  const handleSetPrimaryOnlineCv = async (cvId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!accessToken) return;
+    setOnlineCvs((prev) =>
+      prev.map((c) => ({
+        ...c,
+        isPrimary: c._id === cvId,
+      })),
+    );
+    try {
+      await onlineCvApi.setPrimary(cvId, accessToken);
+      toast.showToast({
+        type: 'success',
+        message: '⭐ Đã đặt làm CV chính thành công!',
+      });
+    } catch (err: any) {
+      void fetchOnlineCvs();
+      toast.showToast({
+        type: 'error',
+        message: err?.message || 'Không thể đặt CV chính',
+      });
+    }
+  };
+
+  const handleSetPrimaryUploadedCv = async (cvId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!accessToken) return;
+    setUploadedCvs((prev) =>
+      prev.map((c) => ({
+        ...c,
+        isPrimary: c._id === cvId,
+      })),
+    );
+    try {
+      await userCvApi.setPrimary(cvId, accessToken);
+      toast.showToast({
+        type: 'success',
+        message: '⭐ Đã đặt làm CV chính thành công!',
+      });
+    } catch (err: any) {
+      void fetchUploadedCvs();
+      toast.showToast({
+        type: 'error',
+        message: err?.message || 'Không thể đặt CV chính',
+      });
+    }
+  };
 
   // Handle boost profile action
   const handleBoostProfile = async () => {
@@ -535,7 +707,7 @@ export default function MyCVPage() {
                   <div className="flex items-center gap-2.5 w-full sm:w-auto">
                     {!user?.isPremium && (
                       <Link
-                        to="/#premium"
+                        to="/premium"
                         className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 px-4 py-2.5 text-xs font-extrabold text-white shadow-md shadow-amber-500/20 active:scale-98 transition cursor-pointer"
                       >
                         <Crown className="h-3.5 w-3.5" />
@@ -678,10 +850,30 @@ export default function MyCVPage() {
                       >
                         {/* CV Miniature Canvas Thumbnail Container */}
                         <div className="relative aspect-[210/297] w-full overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-xs dark:border-slate-800">
-                          {/* Top Right Golden Star Badge */}
-                          <div className="absolute top-2.5 right-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-amber-400 text-white shadow-md">
-                            <Star className="h-4 w-4 fill-white text-white" />
-                          </div>
+                          {/* Top Right Star Badge: Gold only when isPrimary === true, otherwise elegant subtle icon */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!cv.isPrimary) {
+                                void handleSetPrimaryOnlineCv(cv._id, e);
+                              }
+                            }}
+                            title={cv.isPrimary ? 'CV chính (Đang áp dụng)' : 'Bấm để đặt làm CV chính'}
+                            className={`absolute top-2.5 right-2.5 z-10 flex h-7.5 w-7.5 items-center justify-center rounded-full transition-all duration-200 ${
+                              cv.isPrimary
+                                ? 'bg-gradient-to-tr from-amber-400 to-amber-500 text-white shadow-md shadow-amber-500/30 ring-2 ring-white dark:ring-slate-900 cursor-default scale-105'
+                                : 'bg-slate-900/35 hover:bg-slate-900/60 text-slate-300 hover:text-amber-400 backdrop-blur-md border border-white/25 hover:border-amber-400/40 hover:scale-110 active:scale-95 cursor-pointer shadow-xs'
+                            }`}
+                          >
+                            <Star
+                              className={`h-4 w-4 transition-transform ${
+                                cv.isPrimary
+                                  ? 'fill-white text-white drop-shadow-xs'
+                                  : 'text-white/80 hover:text-amber-300 hover:fill-amber-300'
+                              }`}
+                            />
+                          </button>
 
                           {/* Render Mini Snapshot */}
                           <div className="pointer-events-none absolute inset-0 flex justify-center overflow-hidden">
@@ -756,6 +948,20 @@ export default function MyCVPage() {
                                       <Eye className="h-3.5 w-3.5 text-primary" />
                                       <span>Xem PDF</span>
                                     </button>
+                                    {!cv.isPrimary && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setActiveMenuCvId(null);
+                                          void handleSetPrimaryOnlineCv(cv._id, e);
+                                        }}
+                                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/40 cursor-pointer"
+                                      >
+                                        <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                                        <span>Đặt làm CV chính</span>
+                                      </button>
+                                    )}
                                     <button
                                       type="button"
                                       onClick={(e) => {
@@ -793,20 +999,20 @@ export default function MyCVPage() {
                           <div
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSearchableMap((prev) => ({
-                                ...prev,
-                                [cv._id]: !(prev[cv._id] ?? true),
-                              }));
+                              void handleToggleOnlineCvSearchable(
+                                cv._id,
+                                searchableMap[cv._id] ?? cv.isSearchable ?? true,
+                              );
                             }}
                             className="mt-3 pt-1 flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 cursor-pointer select-none"
                           >
                             <ToggleSwitch
-                              checked={searchableMap[cv._id] ?? true}
-                              onChange={(val) =>
-                                setSearchableMap((prev) => ({
-                                  ...prev,
-                                  [cv._id]: val,
-                                }))
+                              checked={searchableMap[cv._id] ?? cv.isSearchable ?? true}
+                              onChange={() =>
+                                void handleToggleOnlineCvSearchable(
+                                  cv._id,
+                                  searchableMap[cv._id] ?? cv.isSearchable ?? true,
+                                )
                               }
                             />
                             <span>{t('cv.allowRecruiterSearch', 'Cho phép NTD tìm kiếm')}</span>
@@ -885,45 +1091,101 @@ export default function MyCVPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                    <div className="space-y-3">
                     {uploadedCvs.map((item) => (
                       <div
                         key={item._id}
-                        className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-800/40 transition"
+                        className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-800/40 transition"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xs uppercase">
-                            {item.fileType || 'PDF'}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xs uppercase">
+                              {item.fileType || 'PDF'}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
+                                {item.title || 'CV đã tải lên'}
+                              </h4>
+                              <p className="text-[11px] text-slate-400">
+                                {t('cv.uploadedOnDate', 'Tải lên ngày')}{' '}
+                                {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
-                              {item.title || 'CV đã tải lên'}
-                            </h4>
-                            <p className="text-[11px] text-slate-400">
-                              {t('cv.uploadedOnDate', 'Tải lên ngày')}{' '}
-                              {new Date(item.createdAt).toLocaleDateString('vi-VN')}
-                            </p>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!item.isPrimary) {
+                                  void handleSetPrimaryUploadedCv(item._id, e);
+                                }
+                              }}
+                              title={item.isPrimary ? 'CV chính (Đang áp dụng)' : 'Bấm để đặt làm CV chính'}
+                              className={`flex h-8.5 items-center gap-1.5 rounded-xl px-3 text-xs font-bold transition-all ${
+                                item.isPrimary
+                                  ? 'bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300'
+                                  : 'border border-slate-200 bg-white text-slate-500 hover:text-amber-500 hover:border-amber-400/50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 cursor-pointer'
+                              }`}
+                            >
+                              <Star
+                                className={`h-3.5 w-3.5 ${
+                                  item.isPrimary
+                                    ? 'fill-amber-500 text-amber-500'
+                                    : 'text-slate-400 hover:text-amber-500'
+                                }`}
+                              />
+                              <span>{item.isPrimary ? 'CV chính' : 'Đặt làm chính'}</span>
+                            </button>
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex h-8.5 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:text-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              <span>{t('cv.viewFile', 'Xem')}</span>
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => void handleDeleteUploadedCv(item._id)}
+                              className="flex h-8.5 w-8.5 items-center justify-center rounded-xl text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/50 transition cursor-pointer"
+                              title="Xóa CV"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex h-8.5 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:text-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                            <span>{t('cv.viewFile', 'Xem')}</span>
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => void handleDeleteUploadedCv(item._id)}
-                            className="flex h-8.5 w-8.5 items-center justify-center rounded-xl text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/50 transition cursor-pointer"
-                            title="Xóa CV"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                        {/* Switch: Cho phép NTD tìm kiếm */}
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleToggleUploadedCvSearchable(
+                              item._id,
+                              searchableMap[item._id] ?? item.isSearchable ?? true,
+                            );
+                          }}
+                          className="mt-3 pt-2.5 border-t border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer select-none"
+                        >
+                          <span className="flex items-center gap-2">
+                            <ToggleSwitch
+                              checked={searchableMap[item._id] ?? item.isSearchable ?? true}
+                              onChange={() =>
+                                void handleToggleUploadedCvSearchable(
+                                  item._id,
+                                  searchableMap[item._id] ?? item.isSearchable ?? true,
+                                )
+                              }
+                            />
+                            <span>{t('cv.allowRecruiterSearch', 'Cho phép NTD tìm kiếm CV này')}</span>
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            {(searchableMap[item._id] ?? item.isSearchable ?? true)
+                              ? 'Đang bật'
+                              : 'Đã tắt'}
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -1055,7 +1317,7 @@ export default function MyCVPage() {
 
                 <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                   <Link
-                    to="/#premium"
+                    to="/premium"
                     className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 hover:bg-amber-50 hover:text-amber-600 px-4 py-2 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200 transition cursor-pointer"
                   >
                     <Crown className="h-3.5 w-3.5 text-amber-500" />
@@ -1165,7 +1427,7 @@ export default function MyCVPage() {
                         </button>
                       )}
                       <Link
-                        to="/#premium"
+                        to="/premium"
                         className="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-2 text-[11px] font-bold text-center transition cursor-pointer"
                       >
                         Nâng Cấp Premium
@@ -1179,7 +1441,7 @@ export default function MyCVPage() {
               <div className="rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-4">
                 {/* Gợi ý việc làm toggle */}
                 <div
-                  onClick={() => setJobRecommendationActive(!jobRecommendationActive)}
+                  onClick={() => void handleToggleJobRecommendation(!jobRecommendationActive)}
                   className="flex items-center justify-between cursor-pointer select-none"
                 >
                   <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200">
@@ -1187,28 +1449,30 @@ export default function MyCVPage() {
                   </span>
                   <ToggleSwitch
                     checked={jobRecommendationActive}
-                    onChange={setJobRecommendationActive}
+                    onChange={(val) => void handleToggleJobRecommendation(val)}
                   />
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
                   <div
-                    onClick={() => setJobSeekingActive(!jobSeekingActive)}
+                    onClick={() => void handleToggleJobSeeking(!jobSeekingActive)}
                     className="flex items-center justify-between cursor-pointer select-none"
                   >
                     <span className="font-bold text-xs sm:text-sm text-primary dark:text-primary-light">
-                      {t('cv.jobSeekingStatusOn', 'Trạng thái tìm việc đang bật')}
+                      {jobSeekingActive
+                        ? t('cv.jobSeekingStatusOn', 'Trạng thái tìm việc đang bật')
+                        : 'Trạng thái tìm việc đang tắt'}
                     </span>
                     <ToggleSwitch
                       checked={jobSeekingActive}
-                      onChange={setJobSeekingActive}
+                      onChange={(val) => void handleToggleJobSeeking(val)}
                     />
                   </div>
 
                   <p className="text-[11.5px] text-slate-500 leading-relaxed">
                     {t(
                       'cv.jobSeekingNotice',
-                      'Trạng thái Bật tìm việc sẽ tự động tắt sau 10 ngày. Nếu bạn vẫn còn nhu cầu tìm việc, hãy Bật tìm việc trở lại.',
+                      'Trạng thái Bật tìm việc giúp hồ sơ của bạn được đề xuất và hiển thị với các Nhà Tuyển Dụng đang tìm kiếm nhân sự.',
                     )}
                   </p>
 
@@ -1216,41 +1480,39 @@ export default function MyCVPage() {
                     <span className="flex items-center gap-1.5 font-bold">
                       <FileText className="h-3.5 w-3.5 text-primary" />
                       <span>
-                        {onlineCvs.length + uploadedCvs.length}{' '}
-                        {t('cv.cvsSelectedCount', 'CV đang được chọn')}
+                        {onlineCvs.filter((c) => searchableMap[c._id] ?? c.isSearchable ?? true).length +
+                          uploadedCvs.filter((c) => searchableMap[c._id] ?? c.isSearchable ?? true).length}{' '}
+                        {t('cv.cvsSelectedCount', 'CV đang được bật tìm kiếm')}
                       </span>
                     </span>
-                    <button
-                      type="button"
-                      className="text-xs font-bold text-primary hover:underline cursor-pointer"
-                    >
-                      {t('cv.changeBtn', 'Thay đổi')}
-                    </button>
                   </div>
                 </div>
               </div>
 
               {/* 3. RECRUITER SEARCH PERMISSION WIDGET */}
               <div className="rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-3">
-                <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white">
-                  {t('cv.allowRecruiterSearchTitle', 'Cho phép NTD tìm kiếm hồ sơ')}
-                </h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white">
+                    {t('cv.allowRecruiterSearchTitle', 'Cho phép NTD tìm kiếm hồ sơ')}
+                  </h4>
+                  <ToggleSwitch
+                    checked={allowRecruiterSearchActive}
+                    onChange={(val) => void handleToggleAllowRecruiterSearch(val)}
+                  />
+                </div>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
-                  {t('cv.allowRecruiterSearchCountPrefix', 'Có')} <b>{onlineCvs.length}</b>{' '}
+                  {t('cv.allowRecruiterSearchCountPrefix', 'Có')}{' '}
+                  <b>
+                    {onlineCvs.filter((c) => searchableMap[c._id] ?? c.isSearchable ?? true).length +
+                      uploadedCvs.filter((c) => searchableMap[c._id] ?? c.isSearchable ?? true).length}
+                  </b>{' '}
                   {t('cv.allowRecruiterSearchCountSuffix', 'CV đang bật cho phép NTD tìm kiếm.')}
                 </p>
 
-                <button
-                  type="button"
-                  className="w-full rounded-xl border border-primary py-2 text-xs font-bold text-primary hover:bg-primary/10 transition cursor-pointer"
-                >
-                  {t('cv.manageListBtn', 'Quản lý danh sách')}
-                </button>
-
-                <p className="text-[11px] text-slate-400 leading-relaxed pt-2">
+                <p className="text-[11px] text-slate-400 leading-relaxed pt-1">
                   {t(
                     'cv.allowRecruiterSearchDesc',
-                    'Khi bạn cho phép Nhà tuyển dụng (NTD) tìm kiếm hồ sơ, các NTD uy tín có thể tiếp cận thông tin kinh nghiệm làm việc, học vấn trên CV của bạn.',
+                    'Khi bạn cho phép Nhà tuyển dụng (NTD) tìm kiếm hồ sơ, chỉ những CV bạn BẬT quyền tìm kiếm mới được hiển thị trong công cụ tìm kiếm và được đẩy Top.',
                   )}
                 </p>
               </div>

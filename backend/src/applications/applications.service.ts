@@ -845,7 +845,12 @@ export class ApplicationsService implements OnModuleInit {
       .leftJoinAndSelect('app.cv', 'cv')
       .leftJoinAndSelect('app.user', 'user')
       .where('app.jobId = :jobId', { jobId })
-      .andWhere('app.isDeleted = :isDeleted', { isDeleted: false });
+      .andWhere('app.isDeleted = :isDeleted', { isDeleted: false })
+      .andWhere('(cv.isSearchable IS NULL OR cv.isSearchable = :isSearchable)', { isSearchable: true })
+      .andWhere('(user.allowRecruiterSearch IS NULL OR user.allowRecruiterSearch = :allowSearch)', { allowSearch: true })
+      .andWhere('(user.isJobSeeking IS NULL OR user.isJobSeeking = :isJobSeeking)', { isJobSeeking: true })
+      .andWhere('user.isDeleted = :userNotDeleted', { userNotDeleted: false })
+      .andWhere('(cv.isDeleted IS NULL OR cv.isDeleted = :cvNotDeleted)', { cvNotDeleted: false });
 
     // Build conditions for matching in PostgreSQL
     if (skillKeywords.length > 0) {

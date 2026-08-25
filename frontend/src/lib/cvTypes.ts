@@ -57,6 +57,8 @@ export interface OnlineCV {
   certificates?: CertificateEntry[];
   awards?: AwardEntry[];
   pdfUrl?: string;
+  isSearchable?: boolean;
+  isPrimary?: boolean;
   userId: string;
   createdAt: string;
   updatedAt: string;
@@ -91,6 +93,7 @@ export interface CreateOnlineCVDto {
   fontSize?: 'small' | 'medium' | 'large';
   htmlContent?: string;
   customFormatting?: any;
+  isSearchable?: boolean;
 }
 
 export interface UpdateOnlineCVDto extends Partial<CreateOnlineCVDto> {}
@@ -108,6 +111,7 @@ export interface UserCV {
   experience?: string[];
   certificates?: string[];
   isPrimary?: boolean;
+  isSearchable?: boolean;
   userId: string;
   createdAt: string;
   updatedAt: string;
@@ -118,6 +122,7 @@ export interface CreateUserCVDto {
   title?: string;
   description?: string;
   isPrimary?: boolean;
+  isSearchable?: boolean;
   onlineCvId?: string;
   fileType?: string;
   parsedText?: string;

@@ -231,7 +231,7 @@ export default function CVTemplatePage() {
         'Mẫu CV Cao Cấp (Premium)',
         'Mẫu CV này chỉ dành cho tài khoản Candidate Premium. Vui lòng nâng cấp để sử dụng 100% mẫu CV Cao Cấp.',
       );
-      navigate('/#premium');
+      navigate('/premium');
       return;
     }
 

@@ -20,4 +20,7 @@ export interface IUser {
   verifiedAt?: Date;
   lastBoostedAt?: Date;
   boostExpiresAt?: Date;
+  isJobSeeking?: boolean;
+  isJobRecommendation?: boolean;
+  allowRecruiterSearch?: boolean;
 }

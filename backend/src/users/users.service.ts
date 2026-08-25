@@ -731,4 +731,58 @@ export class UsersService {
       boostLimitText,
     };
   }
+
+  /**
+   * Lấy cài đặt hiển thị và tìm kiếm việc của ứng viên
+   */
+  async getCandidateSettings(userId: string) {
+    const user = await this.userRepo.findOne({ where: { _id: userId } });
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    return {
+      isJobSeeking: user.isJobSeeking ?? true,
+      isJobRecommendation: user.isJobRecommendation ?? true,
+      allowRecruiterSearch: user.allowRecruiterSearch ?? true,
+    };
+  }
+
+  /**
+   * Cập nhật cài đặt hiển thị và tìm kiếm việc của ứng viên
+   */
+  async updateCandidateSettings(
+    userId: string,
+    settings: {
+      isJobSeeking?: boolean;
+      isJobRecommendation?: boolean;
+      allowRecruiterSearch?: boolean;
+    },
+  ) {
+    const user = await this.userRepo.findOne({ where: { _id: userId } });
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    if (settings.isJobSeeking !== undefined) {
+      user.isJobSeeking = settings.isJobSeeking;
+    }
+    if (settings.isJobRecommendation !== undefined) {
+      user.isJobRecommendation = settings.isJobRecommendation;
+    }
+    if (settings.allowRecruiterSearch !== undefined) {
+      user.allowRecruiterSearch = settings.allowRecruiterSearch;
+    }
+
+    await this.userRepo.save(user);
+
+    return {
+      message: 'Cập nhật cài đặt tìm việc thành công',
+      settings: {
+        isJobSeeking: user.isJobSeeking,
+        isJobRecommendation: user.isJobRecommendation,
+        allowRecruiterSearch: user.allowRecruiterSearch,
+      },
+    };
+  }
 }

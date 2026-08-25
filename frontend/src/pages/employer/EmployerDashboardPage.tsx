@@ -326,7 +326,7 @@ export default function EmployerDashboardPage() {
       id: 'premium',
       label: 'Gói HR Premium',
       icon: Crown,
-      badge: statsData?.isPremium ? 'VIP' : 'Nâng cấp',
+      badge: statsData?.isPremium ? 'PREMIUM' : 'Nâng cấp',
       badgeColor: statsData?.isPremium
         ? 'bg-amber-400 text-slate-950 font-black'
         : 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light',

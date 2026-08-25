@@ -78,9 +78,19 @@ export class OnlineCVsService {
       );
     }
 
+    const isPrimary = currentCount === 0 || createOnlineCVDto.isPrimary === true;
+
+    if (isPrimary) {
+      await this.onlineCVRepo.update(
+        { userId: user._id, isPrimary: true },
+        { isPrimary: false },
+      );
+    }
+
     const { htmlContent, ...dataToSave } = createOnlineCVDto;
     const newCV = this.onlineCVRepo.create({
       ...dataToSave,
+      isPrimary,
       htmlContent,
       userId: user._id,
       createdBy: {
@@ -105,7 +115,7 @@ export class OnlineCVsService {
   async findByUser(user: IUser) {
     const cvs = await this.onlineCVRepo.find({
       where: { userId: user._id, isDeleted: false },
-      order: { createdAt: 'DESC' },
+      order: { isPrimary: 'DESC', createdAt: 'DESC' },
     });
     Logger.log(`Found ${cvs.length} online CV(s) for user ${user.email}`);
     return cvs;
@@ -181,6 +191,52 @@ export class OnlineCVsService {
     });
 
     return await this.onlineCVRepo.softDelete(id);
+  }
+
+  // Toggle allow recruiter to search this online CV
+  async toggleSearchable(id: string, user: IUser, isSearchable?: boolean) {
+    const cv = await this.findOne(id, user);
+    const newSearchable = isSearchable !== undefined ? Boolean(isSearchable) : !cv.isSearchable;
+
+    await this.onlineCVRepo.update(id, {
+      isSearchable: newSearchable,
+      updatedBy: {
+        _id: user._id,
+        email: user.email,
+      },
+    });
+
+    return {
+      _id: cv._id,
+      isSearchable: newSearchable,
+      message: newSearchable
+        ? 'Đã bật cho phép Nhà Tuyển Dụng tìm kiếm CV này'
+        : 'Đã tắt cho phép Nhà Tuyển Dụng tìm kiếm CV này',
+    };
+  }
+
+  // Set an online CV as primary
+  async setPrimary(id: string, user: IUser) {
+    const cv = await this.findOne(id, user);
+
+    await this.onlineCVRepo.update(
+      { userId: user._id, isPrimary: true },
+      { isPrimary: false },
+    );
+
+    await this.onlineCVRepo.update(id, {
+      isPrimary: true,
+      updatedBy: {
+        _id: user._id,
+        email: user.email,
+      },
+    });
+
+    return {
+      _id: cv._id,
+      isPrimary: true,
+      message: 'Đã đặt làm CV chính thành công',
+    };
   }
 
   // Resolve templates directory (dist or src fallback)

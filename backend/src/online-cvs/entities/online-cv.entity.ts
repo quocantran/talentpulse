@@ -130,6 +130,12 @@ export class OnlineCV {
   @JoinColumn({ name: 'userId' })
   user: User;
 
+  @Column({ default: true })
+  isSearchable: boolean;
+
+  @Column({ default: false })
+  isPrimary: boolean;
+
   @Column({ default: false })
   isDeleted: boolean;
 

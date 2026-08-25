@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsEmail,
   IsEnum,
   IsNotEmpty,
@@ -244,4 +245,14 @@ export class CreateOnlineCVDto {
   @IsOptional()
   @IsString()
   htmlContent?: string;
+
+  @ApiPropertyOptional({ description: 'Cho phép Nhà Tuyển Dụng tìm kiếm CV này', default: true })
+  @IsOptional()
+  @IsBoolean()
+  isSearchable?: boolean;
+
+  @ApiPropertyOptional({ description: 'Đặt làm CV chính', default: false })
+  @IsOptional()
+  @IsBoolean()
+  isPrimary?: boolean;
 }

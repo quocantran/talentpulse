@@ -20,6 +20,12 @@ export interface BoostProfileResult {
   isBoosted: boolean;
 }
 
+export interface CandidateSettings {
+  isJobSeeking: boolean;
+  isJobRecommendation: boolean;
+  allowRecruiterSearch: boolean;
+}
+
 export const candidateApi = {
   getBoostStatus: (accessToken?: string | null) =>
     apiRequest<BoostStatusResult>('/users/candidate/boost-status', {
@@ -32,4 +38,23 @@ export const candidateApi = {
       method: 'POST',
       accessToken,
     }),
+
+  getSettings: (accessToken?: string | null) =>
+    apiRequest<CandidateSettings>('/users/candidate/settings', {
+      method: 'GET',
+      accessToken,
+    }),
+
+  updateSettings: (
+    settings: Partial<CandidateSettings>,
+    accessToken?: string | null,
+  ) =>
+    apiRequest<{ message: string; settings: CandidateSettings }>(
+      '/users/candidate/settings',
+      {
+        method: 'PATCH',
+        body: settings,
+        accessToken,
+      },
+    ),
 };
