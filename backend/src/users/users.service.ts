@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
@@ -476,8 +477,18 @@ export class UsersService {
           (value as number) === 1 ? 'ASC' : 'DESC',
         );
       }
+      queryBuilder.addOrderBy('user._id', 'DESC');
     } else {
-      queryBuilder.orderBy('user.createdAt', 'DESC');
+      queryBuilder
+        .addSelect(
+          `(CASE WHEN user.boostExpiresAt > NOW() THEN 1 ELSE 0 END)`,
+          'candidate_boosted',
+        )
+        .orderBy('candidate_boosted', 'DESC')
+        .addOrderBy('user.isPremium', 'DESC')
+        .addOrderBy('user.isVerified', 'DESC')
+        .addOrderBy('user.createdAt', 'DESC')
+        .addOrderBy('user._id', 'DESC');
     }
 
     const [users, totalRecord] = await queryBuilder
@@ -585,5 +596,139 @@ export class UsersService {
 
     const { password, refreshToken, ...rest } = savedUser;
     return rest;
+  }
+
+  /**
+   * Đẩy Top hồ sơ ứng viên (Profile Boosting)
+   * - Candidate Premium: 1 lần / ngày (cooldown 24h, boost 24h)
+   * - Đã Xác Thực: 1 lần / tuần (cooldown 7 ngày, boost 12h)
+   * - Thường (chưa xác thực): Bị chặn
+   */
+  async boostProfile(userId: string) {
+    const user = await this.userRepo.findOne({ where: { _id: userId } });
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    if (user.role !== Role.USER) {
+      throw new BadRequestException('Tính năng Đẩy Top chỉ dành cho tài khoản Ứng viên (Candidate)');
+    }
+
+    const isPremium = this.isCandidatePremium(user);
+    const isVerified = user.isVerified || false;
+
+    if (!isPremium && !isVerified) {
+      throw new ForbiddenException(
+        'Tính năng Đẩy Top hồ sơ yêu cầu tài khoản Đã Xác Thực (1 lần/tuần) hoặc Candidate Premium (1 lần/ngày). Vui lòng xác thực email hoặc nâng cấp gói Premium.',
+      );
+    }
+
+    const now = Date.now();
+    const cooldownMs = isPremium
+      ? 24 * 60 * 60 * 1000 // 24 hours for Premium
+      : 7 * 24 * 60 * 60 * 1000; // 7 days for Verified
+
+    const boostDurationMs = isPremium
+      ? 24 * 60 * 60 * 1000 // 24 hours boost for Premium
+      : 12 * 60 * 60 * 1000; // 12 hours boost for Verified
+
+    if (user.lastBoostedAt) {
+      const elapsedMs = now - new Date(user.lastBoostedAt).getTime();
+      if (elapsedMs < cooldownMs) {
+        const remainingSeconds = Math.ceil((cooldownMs - elapsedMs) / 1000);
+        const days = Math.floor(remainingSeconds / 86400);
+        const hours = Math.floor((remainingSeconds % 86400) / 3600);
+        const minutes = Math.floor((remainingSeconds % 3600) / 60);
+
+        let remainingText = '';
+        if (days > 0) remainingText += `${days} ngày `;
+        if (hours > 0) remainingText += `${hours} giờ `;
+        remainingText += `${minutes} phút`;
+
+        throw new BadRequestException(
+          `Bạn đang trong thời gian hồi chiêu lượt đẩy top. Vui lòng thử lại sau ${remainingText.trim()}.`,
+        );
+      }
+    }
+
+    const boostExpiresAt = new Date(now + boostDurationMs);
+    user.lastBoostedAt = new Date(now);
+    user.boostExpiresAt = boostExpiresAt;
+
+    await this.userRepo.save(user);
+
+    return {
+      message: '🚀 Đẩy top hồ sơ thành công! Hồ sơ của bạn đã được đưa lên vị trí ưu tiên hàng đầu trong tìm kiếm CV của Nhà Tuyển Dụng.',
+      lastBoostedAt: user.lastBoostedAt,
+      boostExpiresAt: user.boostExpiresAt,
+      isBoosted: true,
+    };
+  }
+
+  /**
+   * Lấy trạng thái Đẩy Top hồ sơ hiện tại của ứng viên
+   */
+  async getBoostStatus(userId: string) {
+    const user = await this.userRepo.findOne({ where: { _id: userId } });
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    const isPremium = this.isCandidatePremium(user);
+    const isVerified = user.isVerified || false;
+
+    const tier = isPremium ? 'PREMIUM' : isVerified ? 'VERIFIED' : 'FREE';
+    const boostLimitText = isPremium
+      ? '1 lần / ngày (Ưu tiên Top 1 - 24 giờ)'
+      : isVerified
+      ? '1 lần / tuần (Hiệu lực 12 giờ)'
+      : 'Không khả dụng (Cần xác thực email hoặc mua gói Premium)';
+
+    const now = Date.now();
+    const isBoosted = Boolean(
+      user.boostExpiresAt && new Date(user.boostExpiresAt).getTime() > now,
+    );
+
+    let canBoost = false;
+    let remainingCooldownSeconds = 0;
+    let remainingCooldownText = '';
+
+    if (isPremium || isVerified) {
+      const cooldownMs = isPremium
+        ? 24 * 60 * 60 * 1000
+        : 7 * 24 * 60 * 60 * 1000;
+
+      if (!user.lastBoostedAt) {
+        canBoost = true;
+      } else {
+        const elapsedMs = now - new Date(user.lastBoostedAt).getTime();
+        if (elapsedMs >= cooldownMs) {
+          canBoost = true;
+        } else {
+          remainingCooldownSeconds = Math.ceil((cooldownMs - elapsedMs) / 1000);
+          const days = Math.floor(remainingCooldownSeconds / 86400);
+          const hours = Math.floor((remainingCooldownSeconds % 86400) / 3600);
+          const minutes = Math.floor((remainingCooldownSeconds % 3600) / 60);
+
+          if (days > 0) remainingCooldownText += `${days} ngày `;
+          if (hours > 0) remainingCooldownText += `${hours} giờ `;
+          remainingCooldownText += `${minutes} phút`;
+          remainingCooldownText = remainingCooldownText.trim();
+        }
+      }
+    }
+
+    return {
+      tier,
+      isVerified,
+      isPremium,
+      isBoosted,
+      canBoost,
+      lastBoostedAt: user.lastBoostedAt || null,
+      boostExpiresAt: user.boostExpiresAt || null,
+      remainingCooldownSeconds,
+      remainingCooldownText,
+      boostLimitText,
+    };
   }
 }

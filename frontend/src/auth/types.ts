@@ -13,6 +13,10 @@ export interface AuthUser {
   isPremium?: boolean;
   premiumPlan?: string;
   premiumExpiresAt?: string;
+  isVerified?: boolean;
+  verifiedAt?: string;
+  lastBoostedAt?: string;
+  boostExpiresAt?: string;
   company?: {
     _id: string;
     name: string;

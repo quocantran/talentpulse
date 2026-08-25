@@ -8,7 +8,6 @@ import {
   Edit3,
   Download,
   Trash2,
-  CheckCircle2,
   Briefcase,
   FileText,
   FileUp,
@@ -20,6 +19,11 @@ import {
   Star,
   MoreHorizontal,
   Eye,
+  ShieldCheck,
+  Rocket,
+  Clock,
+  AlertCircle,
+  Zap,
 } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
@@ -30,6 +34,8 @@ import { CVPreviewCanvas } from '../../components/cv/CVPreviewCanvas';
 import { useAuth } from '../../auth/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { onlineCvApi, userCvApi, fileUploadApi } from '../../lib/cvApi';
+import { candidateApi, type BoostStatusResult } from '../../lib/userApi';
+import { authApi } from '../../lib/api';
 import type { OnlineCV, UserCV } from '../../lib/cvTypes';
 
 function ToggleSwitch({
@@ -83,6 +89,11 @@ export default function MyCVPage() {
   const [activeMenuCvId, setActiveMenuCvId] = useState<string | null>(null);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const [selectedCvForDownload, setSelectedCvForDownload] = useState<OnlineCV | null>(null);
+
+  // Profile Boost state
+  const [boostStatus, setBoostStatus] = useState<BoostStatusResult | null>(null);
+  const [isBoosting, setIsBoosting] = useState(false);
+  const [isResendingVerify, setIsResendingVerify] = useState(false);
 
   // Toggles
   const [jobSeekingActive, setJobSeekingActive] = useState(true);
@@ -202,17 +213,73 @@ export default function MyCVPage() {
     }
   };
 
+  // Fetch boost status
+  const fetchBoostStatus = async () => {
+    if (!accessToken) return;
+    try {
+      const res = await candidateApi.getBoostStatus(accessToken);
+      setBoostStatus(res);
+    } catch (err) {
+      console.error('Error fetching boost status:', err);
+    }
+  };
+
   useEffect(() => {
     if (accessToken) {
       void fetchOnlineCvs();
       void fetchUploadedCvs();
+      void fetchBoostStatus();
     }
   }, [accessToken]);
 
+  // Handle boost profile action
+  const handleBoostProfile = async () => {
+    if (!accessToken) return;
+    setIsBoosting(true);
+    try {
+      const res = await candidateApi.boostProfile(accessToken);
+      toast.success(
+        'Đẩy Top Thành Công! 🚀',
+        res.message || 'Hồ sơ của bạn đã được ưu tiên hiển thị hàng đầu với Nhà Tuyển Dụng.',
+      );
+      void fetchBoostStatus();
+    } catch (err: any) {
+      toast.error('Đẩy Top thất bại', err?.message || 'Không thể kích hoạt đẩy Top.');
+    } finally {
+      setIsBoosting(false);
+    }
+  };
+
+  // Handle Resend Verification Email
+  const handleResendVerification = async () => {
+    if (!user?.email) return;
+    setIsResendingVerify(true);
+    try {
+      const res = await authApi.resendVerification({ email: user.email });
+      toast.success('Đã gửi email xác thực!', res.message || 'Vui lòng kiểm tra hòm thư của bạn.');
+    } catch (err: any) {
+      toast.error('Lỗi gửi email', err?.message || 'Không thể gửi lại email xác thực.');
+    } finally {
+      setIsResendingVerify(false);
+    }
+  };
+
   // Handle Create CV click
+  const maxCvLimit = user?.isPremium ? 9999 : user?.isVerified ? 6 : 3;
+  const isCvLimitReached = !user?.isPremium && onlineCvs.length >= maxCvLimit;
+
   const handleCreateCvClick = () => {
     if (isMobileScreen) {
       setIsMobileNoticeOpen(true);
+      return;
+    }
+    if (isCvLimitReached) {
+      toast.info(
+        `Đạt giới hạn ${maxCvLimit} CV`,
+        user?.isVerified
+          ? 'Vui lòng nâng cấp gói Candidate Premium để tạo không giới hạn CV.'
+          : 'Vui lòng xác thực email (nhận 6 CV) hoặc nâng cấp Premium (không giới hạn CV).',
+      );
       return;
     }
     navigate('/cv-templates');
@@ -431,6 +498,96 @@ export default function MyCVPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
             {/* ================= LEFT MAIN COLUMN (8 cols / ~70%) ================= */}
             <div className="lg:col-span-8 space-y-6">
+              {/* 0. CV QUOTA & TIER STATUS BANNER */}
+              <div className="rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Dung lượng tạo CV
+                      </span>
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-black border ${
+                        user?.isPremium
+                          ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                          : user?.isVerified
+                          ? 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30'
+                          : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                      }`}>
+                        {user?.isPremium ? (
+                          <>👑 Premium (Không giới hạn)</>
+                        ) : user?.isVerified ? (
+                          <>🛡️ Đã Xác Thực (Tối đa 6 CV)</>
+                        ) : (
+                          <>Tài khoản Thường (Tối đa 3 CV)</>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+                        {onlineCvs.length}
+                        <span className="text-sm font-semibold text-slate-400">
+                          {' '}/ {user?.isPremium ? '∞ (25+)' : user?.isVerified ? '6' : '3'} CV đã tạo
+                        </span>
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                    {!user?.isPremium && (
+                      <Link
+                        to="/#premium"
+                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 px-4 py-2.5 text-xs font-extrabold text-white shadow-md shadow-amber-500/20 active:scale-98 transition cursor-pointer"
+                      >
+                        <Crown className="h-3.5 w-3.5" />
+                        <span>Nâng Cấp Premium (Không giới hạn)</span>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="mt-3.5">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        user?.isPremium
+                          ? 'bg-gradient-to-r from-amber-400 to-amber-500'
+                          : isCvLimitReached
+                          ? 'bg-red-500'
+                          : 'bg-primary'
+                      }`}
+                      style={{
+                        width: `${
+                          user?.isPremium
+                            ? 100
+                            : Math.min(100, Math.round((onlineCvs.length / maxCvLimit) * 100))
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Unverified Alert */}
+                {!user?.isVerified && !user?.isPremium && (
+                  <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl bg-sky-500/10 border border-sky-500/20 p-3.5 text-xs text-sky-800 dark:text-sky-300">
+                    <div className="flex items-start gap-2.5">
+                      <ShieldCheck className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400 mt-0.5" />
+                      <div>
+                        <span className="font-bold">Xác thực tài khoản qua Gmail để mở rộng:</span> Tạo tối đa <strong>6 CV</strong>, nhận <strong>Tích Xanh</strong> và <strong>1 lượt Đẩy Top/tuần</strong> miễn phí.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isResendingVerify}
+                      onClick={handleResendVerification}
+                      className="shrink-0 rounded-xl bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 font-bold transition cursor-pointer disabled:opacity-50"
+                    >
+                      {isResendingVerify ? 'Đang gửi...' : 'Gửi lại Email xác thực'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* 1. TOP PROMO BANNER: Bật tìm việc cho CV */}
               <div className="relative overflow-hidden rounded-3xl border border-blue-200/80 bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-white p-5 sm:p-6 shadow-sm dark:border-blue-900/50 dark:from-blue-950/40 dark:to-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="max-w-md">
@@ -865,13 +1022,35 @@ export default function MyCVPage() {
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   {t('cv.welcomeBack', 'Chào bạn trở lại,')}
                 </p>
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-white mt-0.5">
-                  {user?.name || 'Người dùng TalentPulse'}
-                </h3>
+                <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                    {user?.name || 'Người dùng TalentPulse'}
+                  </h3>
+                  {user?.isPremium ? (
+                    <span title="Candidate Premium" className="text-amber-500">
+                      👑
+                    </span>
+                  ) : user?.isVerified ? (
+                    <span title="Đã Xác Thực">
+                      <ShieldCheck className="h-4.5 w-4.5 text-sky-500 fill-sky-500 text-white" />
+                    </span>
+                  ) : null}
+                </div>
 
-                <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                  <span>{t('userMenu.verifiedAccount', 'Tài khoản đã xác thực')}</span>
+                <div className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold">
+                  {user?.isPremium ? (
+                    <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-1 text-amber-700 dark:text-amber-300 font-extrabold flex items-center gap-1">
+                      <Crown className="h-3.5 w-3.5" /> Candidate Premium
+                    </span>
+                  ) : user?.isVerified ? (
+                    <span className="rounded-full bg-sky-500/15 border border-sky-500/30 px-3 py-1 text-sky-700 dark:text-sky-300 font-extrabold flex items-center gap-1">
+                      <ShieldCheck className="h-3.5 w-3.5 text-sky-600" /> Đã Xác Thực
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1 text-slate-600 dark:text-slate-400 font-medium">
+                      Tài khoản Thường
+                    </span>
+                  )}
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
@@ -880,9 +1059,120 @@ export default function MyCVPage() {
                     className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 hover:bg-amber-50 hover:text-amber-600 px-4 py-2 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200 transition cursor-pointer"
                   >
                     <Crown className="h-3.5 w-3.5 text-amber-500" />
-                    <span>{t('cv.upgradeAccount', 'Nâng cấp tài khoản')}</span>
+                    <span>{t('cv.upgradeAccount', 'Nâng cấp tài khoản Premium')}</span>
                   </Link>
                 </div>
+              </div>
+
+              {/* 1.5. PROFILE BOOST (ĐẨY TOP HỒ SƠ) WIDGET */}
+              <div className="rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
+                      <Rocket className="h-4.5 w-4.5" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                        Đẩy Top Hồ Sơ Với NTD
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Ưu tiên hiển thị Top đầu khi Nhà Tuyển Dụng tìm kiếm CV
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Box */}
+                {boostStatus?.isBoosted ? (
+                  <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/25 p-4 text-xs space-y-2">
+                    <div className="flex items-center gap-2 font-black text-emerald-700 dark:text-emerald-400">
+                      <Zap className="h-4 w-4" />
+                      <span>HỒ SƠ ĐANG ĐƯỢC ĐẨY TOP 1!</span>
+                    </div>
+                    <p className="text-slate-600 dark:text-slate-300">
+                      Hồ sơ và CV của bạn đang được ghim ở vị trí ưu tiên cao nhất trong bộ lọc tìm kiếm của các nhà tuyển dụng.
+                    </p>
+                    {boostStatus.boostExpiresAt && (
+                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                        Hiệu lực đến: {new Date(boostStatus.boostExpiresAt).toLocaleString('vi-VN')}
+                      </p>
+                    )}
+                  </div>
+                ) : boostStatus?.canBoost ? (
+                  <div className="rounded-2xl bg-indigo-500/10 border border-indigo-500/20 p-4 text-xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-indigo-900 dark:text-indigo-200">
+                        Lượt đẩy Top khả dụng:
+                      </span>
+                      <span className="rounded-full bg-indigo-600 text-white px-2.5 py-0.5 text-[10px] font-black">
+                        Sẵn sàng 🚀
+                      </span>
+                    </div>
+                    <p className="text-slate-600 dark:text-slate-300 text-[11px]">
+                      Hạn mức: <strong>{boostStatus.boostLimitText}</strong>. Nhấn nút bên dưới để ghim hồ sơ của bạn lên đầu kết quả tìm kiếm ngay lập tức!
+                    </p>
+                    <button
+                      type="button"
+                      disabled={isBoosting}
+                      onClick={handleBoostProfile}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-primary hover:from-indigo-700 hover:to-primary-dark px-4 py-2.5 font-extrabold text-white text-xs shadow-md shadow-indigo-500/20 active:scale-98 transition cursor-pointer disabled:opacity-50"
+                    >
+                      <Rocket className="h-4 w-4" />
+                      <span>{isBoosting ? 'Đang kích hoạt...' : 'Kích Hoạt Đẩy Top 1 Ngay'}</span>
+                    </button>
+                  </div>
+                ) : boostStatus?.remainingCooldownSeconds ? (
+                  <div className="rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 p-4 text-xs space-y-2">
+                    <div className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-300">
+                      <Clock className="h-4 w-4 text-slate-400" />
+                      <span>Thời Gian Hồi Chiêu Đẩy Top:</span>
+                    </div>
+                    <p className="text-slate-500 dark:text-slate-400 text-[11px]">
+                      Bạn đã sử dụng lượt đẩy top gần đây. Lượt tiếp theo sẽ mở sau:
+                    </p>
+                    <div className="rounded-xl bg-white dark:bg-slate-900 p-2.5 text-center font-black text-primary text-xs border border-slate-200 dark:border-slate-700">
+                      ⏳ Còn lại: {boostStatus.remainingCooldownText}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 p-4 text-xs space-y-3">
+                    <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                      <span>Chưa Kích Hoạt Tính Năng</span>
+                    </div>
+                    <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+                      Để sử dụng quyền Đẩy Top hồ sơ lên đầu tìm kiếm NTD, bạn cần:
+                    </p>
+                    <div className="space-y-1.5 text-[11px]">
+                      <div className="flex items-center gap-1.5 text-sky-700 dark:text-sky-300">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        <span><strong>Xác thực Email:</strong> Được 1 lần đẩy Top / tuần</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
+                        <Crown className="h-3.5 w-3.5" />
+                        <span><strong>Candidate Premium:</strong> Được 1 lần đẩy Top / ngày (24/7)</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      {!user?.isVerified && (
+                        <button
+                          type="button"
+                          disabled={isResendingVerify}
+                          onClick={handleResendVerification}
+                          className="flex-1 rounded-xl bg-sky-600 hover:bg-sky-700 text-white py-2 text-[11px] font-bold transition cursor-pointer disabled:opacity-50 text-center"
+                        >
+                          Xác thực Email
+                        </button>
+                      )}
+                      <Link
+                        to="/#premium"
+                        className="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-2 text-[11px] font-bold text-center transition cursor-pointer"
+                      >
+                        Nâng Cấp Premium
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 2. JOB SEARCHING STATUS WIDGET */}

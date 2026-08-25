@@ -137,10 +137,22 @@ export default function Header() {
                   <UserAvatar src={user.avatar} alt={user.name} size="md" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{user.name}</p>
-                    <p className="flex items-center gap-1 text-xs text-primary dark:text-primary-light">
-                      <CheckCircle2 className="h-3 w-3" />
-                      <span>{t('userMenu.verifiedAccount')}</span>
-                    </p>
+                    <div className="flex items-center gap-1 text-xs">
+                      {user.isPremium ? (
+                        <span className="text-amber-500 font-bold flex items-center gap-1">
+                          👑 {user.role === 'HR' ? 'HR Premium' : 'Candidate Premium'}
+                        </span>
+                      ) : user.isVerified ? (
+                        <span className="text-sky-600 dark:text-sky-400 font-semibold flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          {t('userMenu.verifiedAccount', 'Tài khoản đã xác thực')}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-medium">
+                          Tài khoản thường (Chưa xác thực)
+                        </span>
+                      )}
+                    </div>
                     <p className="truncate text-xs text-slate-400">{user.email}</p>
                   </div>
                 </div>
@@ -238,14 +250,16 @@ export default function Header() {
             <div className="pt-3 border-t border-gray-200/60 dark:border-slate-700 flex flex-col gap-2">
               {status === 'authenticated' && user ? (
                 <>
-                  <Link
-                    to="/dashboard"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-center text-primary bg-primary/10 dark:bg-primary/20 rounded-xl"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    {t('nav.myDashboard')}
-                  </Link>
+                  {user.role === 'HR' && (
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-center text-primary bg-primary/10 dark:bg-primary/20 rounded-xl"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      {t('nav.myDashboard')}
+                    </Link>
+                  )}
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);

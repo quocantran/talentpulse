@@ -886,10 +886,21 @@ export class ApplicationsService implements OnModuleInit {
       queryBuilder.andWhere(`(${certConds.join(' OR ')})`, params);
     }
 
-    queryBuilder.orderBy('app.createdAt', 'DESC');
+    queryBuilder
+      .addSelect(
+        `(CASE WHEN user.boostExpiresAt > NOW() THEN 1 ELSE 0 END)`,
+        'user_is_boosted',
+      )
+      .orderBy('user_is_boosted', 'DESC')
+      .addOrderBy('user.isPremium', 'DESC')
+      .addOrderBy('user.createdAt', 'DESC')
+      .addOrderBy('user._id', 'DESC')
+      .addOrderBy('app.createdAt', 'DESC')
+      .addOrderBy('app._id', 'DESC');
 
     const applications = await queryBuilder.getMany();
 
+    const now = new Date();
     const enrichedResults = applications.map((app) => {
       const matchedSkills: string[] = [];
       const matchedEducation: string[] = [];
@@ -946,6 +957,10 @@ export class ApplicationsService implements OnModuleInit {
         matchedInParsedText = true;
       }
 
+      const isBoosted = Boolean(
+        app.user?.boostExpiresAt && new Date(app.user.boostExpiresAt) > now,
+      );
+
       return {
         _id: app._id,
         status: app.status,
@@ -969,6 +984,10 @@ export class ApplicationsService implements OnModuleInit {
               email: app.user.email,
               avatar: app.user.avatar,
               address: app.user.address,
+              isVerified: app.user.isVerified || false,
+              isPremium: app.user.isPremium || false,
+              isBoosted,
+              boostExpiresAt: app.user.boostExpiresAt || null,
             }
           : app.userId,
         matchInfo: {

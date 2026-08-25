@@ -49,7 +49,7 @@ export const PremiumPricingTable: React.FC<PremiumPricingTableProps> = ({
         priceAnnual: 0,
       },
       premium: {
-        title: 'Candidate Premium VIP',
+        title: 'Candidate Premium',
         sub: 'Bứt phá sự nghiệp & tiếp cận NTD hàng đầu',
         badge: 'Khuyên Dùng - Phổ Biến Nhất',
         monthly: { price: 49000, original: 49000, periodText: '/ tháng', discount: '' },
@@ -102,7 +102,7 @@ export const PremiumPricingTable: React.FC<PremiumPricingTableProps> = ({
       category: '2. Nâng cao Hiển thị & Độ uy tín',
       features: [
         { name: 'Ưu tiên đẩy Top hiển thị với NTD', free: false, verified: '1 lần/tuần', premium: '1 lần/ngày (Top 1 Search)' },
-        { name: 'Biểu tượng tích xanh xác minh VIP', free: false, verified: true, premium: true },
+        { name: 'Biểu tượng tích xanh xác minh', free: false, verified: true, premium: true },
         { name: 'Sử dụng 100% mẫu CV Cao Cấp', free: false, verified: false, premium: true },
         { name: 'Sử dụng mẫu Cover Letter chuẩn Pro', free: false, verified: false, premium: true },
         { name: 'Xóa Watermark / Thương hiệu trên CV', free: false, verified: false, premium: true },
@@ -174,7 +174,7 @@ export const PremiumPricingTable: React.FC<PremiumPricingTableProps> = ({
         billingCycle,
         price: candPricing.price,
         originalPrice: candPricing.original,
-        title: 'Candidate Premium VIP',
+        title: 'Candidate Premium',
       });
     } else {
       onSelectPlan({
@@ -336,22 +336,22 @@ export const PremiumPricingTable: React.FC<PremiumPricingTableProps> = ({
           </div>
         </div>
 
-        {/* Card 3: PREMIUM VIP (TALENTPULSE ROYAL BLUE HIGHLIGHTED CARD) */}
+        {/* Card 3: PREMIUM (TALENTPULSE ROYAL BLUE HIGHLIGHTED CARD) */}
         <div className="relative flex flex-col justify-between rounded-3xl border-2 border-primary bg-gradient-to-b from-primary/5 via-white to-primary/10 p-7 shadow-xl shadow-primary/15 dark:from-primary/20 dark:via-slate-900 dark:to-primary/10 dark:border-primary-light">
           {/* Highlight Badge */}
           <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary-dark px-4 py-1 text-[11px] font-black text-white shadow-md shadow-primary/30">
             <Crown className="h-3.5 w-3.5 text-amber-300" />
-            <span>{isCandidate ? 'CANDIDATE VIP PRO' : 'HR ENTERPRISE VIP'}</span>
+            <span>{isCandidate ? 'CANDIDATE PREMIUM' : 'HR ENTERPRISE'}</span>
           </div>
 
           <div>
             <div className="flex items-center justify-between gap-2 mb-3 mt-1">
               <h3 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-amber-500" />
-                <span>{isCandidate ? 'Premium VIP' : 'HR Premium'}</span>
+                <span>{isCandidate ? 'Candidate Premium' : 'HR Premium'}</span>
               </h3>
               <span className="rounded-full bg-amber-400 text-slate-950 px-2.5 py-0.5 text-[11px] font-black shadow-2xs">
-                VIP
+                PRO
               </span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300 font-medium min-h-[36px]">
@@ -463,7 +463,7 @@ export const PremiumPricingTable: React.FC<PremiumPricingTableProps> = ({
                 <th className="py-4.5 px-4 text-center w-1/5 bg-primary/10 dark:bg-primary/20 border-l border-r border-primary/20">
                   <div className="flex items-center justify-center gap-1 text-primary dark:text-primary-light font-black">
                     <Crown className="h-3.5 w-3.5 text-amber-500" />
-                    <span>Premium VIP</span>
+                    <span>{isCandidate ? 'Candidate Premium' : 'HR Premium'}</span>
                   </div>
                   <div className="text-[11px] font-extrabold text-primary dark:text-primary-light">
                     {(isCandidate ? candPricing.price : hrPricing.price).toLocaleString('vi-VN')} đ

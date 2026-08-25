@@ -16,4 +16,8 @@ export interface IUser {
   isPremium?: boolean;
   premiumPlan?: string;
   premiumExpiresAt?: Date;
+  isVerified?: boolean;
+  verifiedAt?: Date;
+  lastBoostedAt?: Date;
+  boostExpiresAt?: Date;
 }

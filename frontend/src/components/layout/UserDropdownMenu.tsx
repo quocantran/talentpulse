@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   Crown,
   LogOut,
-  CheckCircle2,
   Send,
   Sparkles,
   SlidersHorizontal,
@@ -21,6 +20,7 @@ import {
   UserCog,
   KeyRound,
   Settings2,
+  Receipt,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { UserAvatar } from '../common/UserAvatar';
@@ -165,11 +165,29 @@ export function UserDropdownMenu() {
                       </h3>
                     </div>
 
-                    <div className="mt-0.5 flex items-center gap-1.5 text-[13.5px]">
-                      <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                      <span className="font-semibold text-primary dark:text-primary-light">
-                        {t('userMenu.verifiedAccount')}
-                      </span>
+                    <div className="mt-1 flex items-center gap-1.5 text-[13px]">
+                      {user.isPremium ? (
+                        <>
+                          <Crown className="h-4 w-4 text-amber-500 shrink-0" />
+                          <span className="font-extrabold text-amber-600 dark:text-amber-400">
+                            {user.role === 'HR' ? 'HR Premium' : 'Candidate Premium'}
+                          </span>
+                        </>
+                      ) : user.isVerified ? (
+                        <>
+                          <ShieldCheck className="h-4 w-4 text-sky-500 shrink-0" />
+                          <span className="font-semibold text-sky-600 dark:text-sky-400">
+                            {t('userMenu.verifiedAccount', 'Tài khoản đã xác thực')}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" />
+                          <span className="font-medium text-slate-500 dark:text-slate-400">
+                            Tài khoản thường (Chưa xác thực)
+                          </span>
+                        </>
+                      )}
                     </div>
 
                     <p className="mt-1 truncate text-[13px] text-slate-400 dark:text-slate-500">
@@ -379,6 +397,15 @@ export function UserDropdownMenu() {
                       >
                         <Crown className="h-4 w-4" />
                         <span>{user.role === 'HR' ? t('userMenu.hrPremium', 'Gói HR Premium') : t('userMenu.candidatePremium', 'Gói Candidate Premium')}</span>
+                      </Link>
+
+                      <Link
+                        to={user.role === 'HR' ? '/dashboard?tab=payments' : '/payment-history'}
+                        onClick={() => setIsOpen(false)}
+                        className="flex items-center gap-2.5 py-2 font-bold text-slate-700 dark:text-slate-300 hover:text-primary dark:hover:text-primary-light transition-colors"
+                      >
+                        <Receipt className="h-4 w-4" />
+                        <span>Lịch sử thanh toán</span>
                       </Link>
                     </div>
                   )}

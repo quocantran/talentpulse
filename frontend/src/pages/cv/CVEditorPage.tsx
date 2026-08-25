@@ -868,18 +868,30 @@ export default function CVEditorPage() {
 
                   <div
                     onClick={() => {
+                      if (!user?.isPremium) {
+                        toast.info(
+                          'Mẫu CV Cao Cấp (Premium)',
+                          'Mẫu Hiện đại 2 Cột chỉ dành riêng cho tài khoản Candidate Premium. Vui lòng nâng cấp để mở khóa.',
+                        );
+                        return;
+                      }
                       setTemplateType('template2');
                       markDirty();
                     }}
-                    className={`p-3 rounded-2xl border-2 transition cursor-pointer ${
+                    className={`p-3 rounded-2xl border-2 transition cursor-pointer relative ${
                       templateType === 'template2'
                         ? 'border-primary bg-primary/5 dark:bg-primary/10'
                         : 'border-slate-200 hover:border-slate-300 dark:border-slate-800'
                     }`}
                   >
-                    <p className="font-extrabold text-slate-900 dark:text-white">
-                      Mẫu 2: Hiện đại 2 Cột (Modern Timeline)
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="font-extrabold text-slate-900 dark:text-white">
+                        Mẫu 2: Hiện đại 2 Cột (Modern Timeline)
+                      </p>
+                      <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-black text-amber-700 dark:text-amber-300">
+                        👑 PREMIUM
+                      </span>
+                    </div>
                     <p className="text-slate-500 mt-1 text-[11px]">
                       Bố cục 2 cột năng động với dòng thời gian trực quan.
                     </p>

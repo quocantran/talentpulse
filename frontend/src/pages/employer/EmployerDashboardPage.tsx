@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Loader2,
   Crown,
+  Receipt,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -37,6 +38,7 @@ import { CVSearchTab } from './tabs/CVSearchTab';
 import { HrAccountTab } from './tabs/HrAccountTab';
 import { NotificationsTab } from './tabs/NotificationsTab';
 import { HrPremiumTab } from './tabs/HrPremiumTab';
+import { HrPaymentHistoryTab } from './tabs/HrPaymentHistoryTab';
 import { JobEditorView, type JobFormData } from './components/JobEditorView';
 
 export type EmployerTabType =
@@ -47,7 +49,8 @@ export type EmployerTabType =
   | 'company'
   | 'account'
   | 'notifications'
-  | 'premium';
+  | 'premium'
+  | 'payments';
 
 export default function EmployerDashboardPage() {
   const { t } = useTranslation();
@@ -327,6 +330,12 @@ export default function EmployerDashboardPage() {
       badgeColor: statsData?.isPremium
         ? 'bg-amber-400 text-slate-950 font-black'
         : 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light',
+    },
+    {
+      id: 'payments',
+      label: 'Lịch sử thanh toán',
+      icon: Receipt,
+      badge: null,
     },
   ];
 
@@ -685,6 +694,10 @@ export default function EmployerDashboardPage() {
                     accessToken={accessToken}
                     onRefreshStats={refreshAll}
                   />
+                )}
+
+                {activeTab === 'payments' && (
+                  <HrPaymentHistoryTab />
                 )}
               </>
             )}

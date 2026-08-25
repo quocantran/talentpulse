@@ -60,6 +60,21 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   premiumExpiresAt: Date;
 
+  @Column({ default: false })
+  isVerified: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  verifiedAt: Date;
+
+  @Column({ nullable: true })
+  verificationToken: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastBoostedAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  boostExpiresAt: Date;
+
   @Column({ nullable: true })
   refreshToken: string;
 

@@ -9,12 +9,14 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import GoogleCallbackPage from './pages/auth/GoogleCallbackPage';
 import PendingApprovalPage from './pages/auth/PendingApprovalPage';
-import DashboardEntryPage from './pages/dashboard/DashboardEntryPage';
+import VerifyAccountPage from './pages/auth/VerifyAccountPage';
 import MyCVPage from './pages/cv/MyCVPage';
 import CVTemplatePage from './pages/cv/CVTemplatePage';
 import CVEditorPage from './pages/cv/CVEditorPage';
 import EmployerDashboardPage from './pages/employer/EmployerDashboardPage';
 import PremiumPage from './pages/premium/PremiumPage';
+import PaymentHistoryPage from './pages/payment/PaymentHistoryPage';
+import PaymentVerifyPage from './pages/payment/PaymentVerifyPage';
 import { ScrollToTop } from './components/common/ScrollToTop';
 
 function App() {
@@ -26,6 +28,7 @@ function App() {
             <ScrollToTop />
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/verify-account" element={<VerifyAccountPage />} />
             <Route element={<GuestRoute />}>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
@@ -33,12 +36,16 @@ function App() {
             <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
             <Route path="/pending-approval" element={<PendingApprovalPage />} />
             <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<DashboardEntryPage />} />
-              <Route path="/hr/dashboard" element={<Navigate to="/dashboard" replace />} />
               <Route path="/premium" element={<PremiumPage />} />
               <Route path="/pricing" element={<Navigate to="/premium" replace />} />
+              <Route path="/payment-history" element={<PaymentHistoryPage />} />
+              <Route path="/payment/history" element={<Navigate to="/payment-history" replace />} />
+              <Route path="/payment/verify/:orderCode" element={<PaymentVerifyPage />} />
+              <Route path="/payment/verify" element={<PaymentVerifyPage />} />
             </Route>
             <Route element={<ProtectedRoute allowedRoles={['HR', 'ADMIN']} />}>
+              <Route path="/dashboard" element={<EmployerDashboardPage />} />
+              <Route path="/hr/dashboard" element={<Navigate to="/dashboard" replace />} />
               <Route path="/hr/jobs/create" element={<EmployerDashboardPage />} />
               <Route path="/hr/jobs/new" element={<Navigate to="/hr/jobs/create" replace />} />
               <Route path="/hr/jobs/edit/:id" element={<EmployerDashboardPage />} />

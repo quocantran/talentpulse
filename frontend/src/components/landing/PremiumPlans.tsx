@@ -7,21 +7,17 @@ import { useAuth } from '../../auth/AuthContext';
 export default function PremiumPlans() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user, status } = useAuth();
+  const { status } = useAuth();
 
   const candidateFeatures = t('premium.candidate.features', { returnObjects: true }) as string[];
   const hrFeatures = t('premium.hr.features', { returnObjects: true }) as string[];
 
-  const handleAction = (target: 'candidate' | 'hr') => {
+  const handleAction = (_target?: 'candidate' | 'hr') => {
     if (status !== 'authenticated') {
       navigate('/login');
       return;
     }
-    if (user?.role === 'HR' || target === 'hr') {
-      navigate('/dashboard?tab=premium');
-    } else {
-      navigate('/premium');
-    }
+    navigate('/premium');
   };
 
   return (

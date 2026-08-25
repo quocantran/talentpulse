@@ -6,6 +6,7 @@ import {
   PremiumPricingTable,
 } from '../../components/premium/PremiumPricingTable';
 import { PremiumCheckoutModal } from '../../components/premium/PremiumCheckoutModal';
+import { PaymentWaitingModal, WaitingPaymentInfo } from '../../components/premium/PaymentWaitingModal';
 import { useAuth } from '../../auth/AuthContext';
 import {
   Crown,
@@ -26,16 +27,17 @@ export default function PremiumPage() {
 
   const [selectedPlanInfo, setSelectedPlanInfo] = useState<any | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [waitingPayment, setWaitingPayment] = useState<WaitingPaymentInfo | null>(null);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
   const faqs = [
     {
-      q: 'Gói Candidate Premium VIP được kích hoạt trong bao lâu sau khi thanh toán?',
-      a: 'Tài khoản của bạn sẽ được nâng cấp tức thì (dưới 30 giây) ngay khi hệ thống ghi nhận giao dịch thành công qua VNPAY, MoMo hoặc Chuyển khoản ngân hàng 24/7.',
+      q: 'Gói Candidate Premium được kích hoạt trong bao lâu sau khi thanh toán?',
+      a: 'Tài khoản của bạn sẽ được nâng cấp tức thì (dưới 30 giây) ngay khi hệ thống ghi nhận giao dịch thành công qua PayOS, MoMo hoặc Chuyển khoản ngân hàng 24/7.',
     },
     {
       q: 'Gói Candidate Premium có giúp tôi tìm được việc làm nhanh hơn không?',
-      a: 'Theo thống kê thực tế, hồ sơ ứng viên sở hữu huy hiệu VIP và tính năng Đẩy Top hồ sơ nhận được tỷ lệ xem CV cao hơn gấp 5.2 lần và nhận lời mời phỏng vấn nhanh hơn 3 lần so với tài khoản thông thường.',
+      a: 'Theo thống kê thực tế, hồ sơ ứng viên sở hữu huy hiệu Premium và tính năng Đẩy Top hồ sơ nhận được tỷ lệ xem CV cao hơn gấp 5.2 lần và nhận lời mời phỏng vấn nhanh hơn 3 lần so với tài khoản thông thường.',
     },
     {
       q: 'Tính năng AI Chấm điểm & Gợi ý từ khóa ATS hoạt động như thế nào?',
@@ -43,7 +45,7 @@ export default function PremiumPage() {
     },
     {
       q: 'Tôi có thể tạo và tải bao nhiêu mẫu CV khi nâng cấp gói Premium?',
-      a: 'Bạn được mở khóa 100% toàn bộ kho 50+ mẫu CV chuyên nghiệp, tạo không giới hạn CV & Cover Letter và xuất file PDF chất lượng cao không gắn logo thương hiệu.',
+      a: 'Bạn được mở khóa 100% toàn bộ kho mẫu CV chuyên nghiệp, tạo không giới hạn CV & Cover Letter và xuất file PDF chất lượng cao không gắn logo thương hiệu.',
     },
     {
       q: 'Chính sách hoàn tiền và hỗ trợ ứng viên như thế nào?',
@@ -62,7 +64,7 @@ export default function PremiumPage() {
 
       <main className="flex-1 pt-24 pb-20">
         {/* ========================================================================= */}
-        {/* 1. HERO SECTION FOR CANDIDATE VIP                                         */}
+        {/* 1. HERO SECTION FOR CANDIDATE PREMIUM                                     */}
         {/* ========================================================================= */}
         <section className="relative overflow-hidden pt-8 pb-14 text-center">
           {/* Subtle Background Glows */}
@@ -72,7 +74,7 @@ export default function PremiumPage() {
             {/* Top Pill Badge */}
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-black text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-primary-light shadow-xs">
               <Crown className="h-4 w-4 text-amber-500" />
-              <span>GÓI ĐĂNG KÝ CANDIDATE PREMIUM VIP</span>
+              <span>GÓI ĐĂNG KÝ CANDIDATE PREMIUM</span>
             </div>
 
             {/* Main Headline */}
@@ -228,6 +230,16 @@ export default function PremiumPage() {
         planInfo={selectedPlanInfo}
         userEmail={user?.email}
         userName={user?.name}
+        onPaymentCreated={(info) => {
+          setWaitingPayment(info);
+        }}
+      />
+
+      {/* Waiting for Payment Countdown Modal */}
+      <PaymentWaitingModal
+        isOpen={!!waitingPayment}
+        onClose={() => setWaitingPayment(null)}
+        paymentInfo={waitingPayment}
       />
 
       <Footer />

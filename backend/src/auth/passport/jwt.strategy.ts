@@ -42,6 +42,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       isPremium: user.isPremium || false,
       premiumPlan: user.premiumPlan || 'FREE',
       premiumExpiresAt: user.premiumExpiresAt || undefined,
+      isVerified: user.isVerified || false,
+      verifiedAt: user.verifiedAt || undefined,
+      lastBoostedAt: user.lastBoostedAt || undefined,
+      boostExpiresAt: user.boostExpiresAt || undefined,
     } as IUser;
   }
 }

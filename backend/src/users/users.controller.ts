@@ -200,4 +200,20 @@ export class UsersController {
   findPendingHrs() {
     return this.usersService.findPendingHrs();
   }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Boost candidate profile to the top of HR CV search' })
+  @ApiBearerAuth()
+  @Post('/candidate/boost-profile')
+  boostProfile(@User() user: IUser) {
+    return this.usersService.boostProfile(user._id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get candidate profile boost status & cooldown' })
+  @ApiBearerAuth()
+  @Get('/candidate/boost-status')
+  getBoostStatus(@User() user: IUser) {
+    return this.usersService.getBoostStatus(user._id);
+  }
 }

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -7,6 +8,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OnlineCV } from './entities/online-cv.entity';
+import { User } from 'src/users/entities/user.entity';
+import { UsersService } from 'src/users/users.service';
 import { IUser } from 'src/users/users.interface';
 import { CreateOnlineCVDto } from './dto/create-online-cv.dto';
 import { UpdateOnlineCVDto } from './dto/update-online-cv.dto';
@@ -23,6 +26,9 @@ export class OnlineCVsService {
   constructor(
     @InjectRepository(OnlineCV)
     private readonly onlineCVRepo: Repository<OnlineCV>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+    private readonly usersService: UsersService,
     private readonly filesService: FilesService,
   ) {
     this.loadPuppeteer();
@@ -38,6 +44,40 @@ export class OnlineCVsService {
 
   // Create a new online CV
   async create(createOnlineCVDto: CreateOnlineCVDto, user: IUser) {
+    const userInDb = await this.userRepo.findOne({ where: { _id: user._id } });
+    if (!userInDb) {
+      throw new NotFoundException('Không tìm thấy tài khoản người dùng');
+    }
+
+    const isPremium = this.usersService.isCandidatePremium(userInDb);
+    const isVerified = userInDb.isVerified || false;
+
+    // 1. Enforce max CV limits: Thường (3), Đã xác thực (6), Premium (Không giới hạn)
+    const maxLimit = isPremium ? 9999 : isVerified ? 6 : 3;
+    const currentCount = await this.onlineCVRepo.count({
+      where: { userId: user._id, isDeleted: false },
+    });
+
+    if (currentCount >= maxLimit) {
+      const upgradeMsg = isVerified
+        ? 'Vui lòng nâng cấp gói Candidate Premium để tạo không giới hạn CV.'
+        : 'Vui lòng xác thực tài khoản qua Email (để nâng hạn mức lên 6 CV) hoặc nâng cấp gói Candidate Premium (không giới hạn CV).';
+      throw new ForbiddenException(
+        `Bạn đã đạt giới hạn tối đa ${maxLimit} CV cho cấp tài khoản hiện tại. ${upgradeMsg}`,
+      );
+    }
+
+    // 2. Enforce Premium Template Lock: Template khác template1 là mẫu Cao Cấp
+    const isPremiumTemplate =
+      createOnlineCVDto.templateType &&
+      createOnlineCVDto.templateType !== 'template1';
+
+    if (isPremiumTemplate && !isPremium) {
+      throw new ForbiddenException(
+        'Mẫu CV Cao Cấp này chỉ dành riêng cho tài khoản Candidate Premium. Vui lòng nâng cấp gói Premium để tạo CV với mẫu này.',
+      );
+    }
+
     const { htmlContent, ...dataToSave } = createOnlineCVDto;
     const newCV = this.onlineCVRepo.create({
       ...dataToSave,
@@ -91,6 +131,20 @@ export class OnlineCVsService {
   // Update online CV
   async update(id: string, updateOnlineCVDto: UpdateOnlineCVDto, user: IUser) {
     const cv = await this.findOne(id, user);
+
+    // Enforce Premium Template Lock on update
+    if (
+      updateOnlineCVDto.templateType &&
+      updateOnlineCVDto.templateType !== 'template1'
+    ) {
+      const userInDb = await this.userRepo.findOne({ where: { _id: user._id } });
+      const isPremium = this.usersService.isCandidatePremium(userInDb);
+      if (!isPremium) {
+        throw new ForbiddenException(
+          'Mẫu CV Cao Cấp này chỉ dành riêng cho tài khoản Candidate Premium. Vui lòng nâng cấp gói Premium để sử dụng mẫu này.',
+        );
+      }
+    }
 
     const { htmlContent, ...dataToSave } = updateOnlineCVDto;
 
@@ -161,11 +215,15 @@ export class OnlineCVsService {
       throw new BadRequestException('PDF generation is not available');
     }
 
+    // Verify premium directly from database to prevent watermark bypass
+    const userInDb = await this.userRepo.findOne({ where: { _id: user._id } });
+    const userIsPremium = this.usersService.isCandidatePremium(userInDb) || Boolean(isPremium);
+
     try {
       const contentToUse = htmlContent || cv.htmlContent;
       let finalHtml = '';
 
-      const watermarkHtml = isPremium
+      const watermarkHtml = userIsPremium
         ? ''
         : `
 <div style="position: fixed; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 8pt; color: #94a3b8; font-family: 'Inter', sans-serif; border-top: 1px dashed #cbd5e1; padding-top: 4px; margin: 0 40px; pointer-events: none; z-index: 9999; background: white;">

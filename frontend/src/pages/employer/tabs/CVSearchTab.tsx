@@ -236,15 +236,36 @@ export function CVSearchTab({
                 className="rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-11 w-11 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="relative h-11 w-11 shrink-0 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm">
                       {(res.userId?.name?.[0] || 'U').toUpperCase()}
+                      {res.userId?.isBoosted && (
+                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[9px] text-white shadow-xs">
+                          🚀
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                        {res.userId?.name || 'Candidate'}
-                      </h4>
-                      <p className="text-xs text-slate-500">{res.userId?.email}</p>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                          {res.userId?.name || 'Candidate'}
+                        </h4>
+                        {res.userId?.isPremium ? (
+                          <span title="Candidate Premium" className="text-xs">
+                            👑
+                          </span>
+                        ) : res.userId?.isVerified ? (
+                          <span title="Ứng viên đã xác thực" className="inline-flex items-center text-sky-500">
+                            🛡️
+                          </span>
+                        ) : null}
+                        {res.userId?.isBoosted && (
+                          <span className="rounded-full bg-indigo-500/15 border border-indigo-500/30 px-2 py-0.5 text-[10px] font-black text-indigo-700 dark:text-indigo-300 animate-pulse">
+                            🚀 Đang Đẩy Top
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 truncate">{res.userId?.email}</p>
                     </div>
                   </div>
 
@@ -253,7 +274,7 @@ export function CVSearchTab({
                       href={res.cvId.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 rounded-xl bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-white transition"
+                      className="inline-flex items-center gap-1 shrink-0 rounded-xl bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-white transition"
                     >
                       <span>{t('employer.candidatesTab.btnViewCv')}</span>
                       <ExternalLink className="h-3 w-3" />

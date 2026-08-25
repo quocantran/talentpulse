@@ -11,6 +11,7 @@ import {
   PremiumPricingTable,
 } from '../../../components/premium/PremiumPricingTable';
 import { PremiumCheckoutModal } from '../../../components/premium/PremiumCheckoutModal';
+import { PaymentWaitingModal, WaitingPaymentInfo } from '../../../components/premium/PaymentWaitingModal';
 import { HrDashboardStats } from '../../../lib/employerApi';
 import { useAuth } from '../../../auth/AuthContext';
 
@@ -26,6 +27,7 @@ export const HrPremiumTab: React.FC<HrPremiumTabProps> = ({
   const { user } = useAuth();
   const [selectedPlanInfo, setSelectedPlanInfo] = useState<any | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [waitingPayment, setWaitingPayment] = useState<WaitingPaymentInfo | null>(null);
 
   const isPremium = statsData?.isPremium ?? false;
   const planName = statsData?.premiumPlan ?? 'FREE';
@@ -154,6 +156,16 @@ export const HrPremiumTab: React.FC<HrPremiumTabProps> = ({
         planInfo={selectedPlanInfo}
         userEmail={user?.email}
         userName={user?.name}
+        onPaymentCreated={(info) => {
+          setWaitingPayment(info);
+        }}
+      />
+
+      {/* Waiting for Payment Countdown Modal */}
+      <PaymentWaitingModal
+        isOpen={!!waitingPayment}
+        onClose={() => setWaitingPayment(null)}
+        paymentInfo={waitingPayment}
       />
     </div>
   );
