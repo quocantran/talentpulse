@@ -10,6 +10,9 @@ export interface AuthUser {
   address?: string;
   avatar?: string;
   isApproved?: boolean;
+  isPremium?: boolean;
+  premiumPlan?: string;
+  premiumExpiresAt?: string;
   company?: {
     _id: string;
     name: string;

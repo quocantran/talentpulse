@@ -6,7 +6,6 @@ import {
   Save,
   Lock,
   Loader2,
-  MessageSquare,
 } from 'lucide-react';
 import { employerApi } from '../../../lib/employerApi';
 import { useToast } from '../../../context/ToastContext';
@@ -35,10 +34,6 @@ export function HrAccountTab({ accessToken, onRefreshUser }: HrAccountTabProps) 
     newPassword: '',
     confirmPassword: '',
   });
-
-  const [rejectTemplate, setRejectTemplate] = useState(
-    'Cảm ơn bạn đã quan tâm và ứng tuyển vào công ty chúng tôi. Hiện tại hồ sơ của bạn chưa phù hợp với yêu cầu kinh nghiệm của vị trí này. Chúng tôi xin phép lưu trữ hồ sơ và liên hệ với bạn trong các cơ hội tiếp theo!',
-  );
 
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
@@ -278,39 +273,6 @@ export function HrAccountTab({ accessToken, onRefreshUser }: HrAccountTabProps) 
             </button>
           </div>
         </form>
-
-        {/* Automatic Rejection Template Setting */}
-        <div className="sm:col-span-2 rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
-          <div className="flex items-center gap-3 border-b border-slate-100 pb-4 dark:border-slate-800">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400">
-              <MessageSquare className="h-5 w-5" />
-            </span>
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                {t('employer.accountTab.autoReplyTitle')}
-              </h3>
-              <p className="text-xs text-slate-500">{t('employer.accountTab.autoReplyDesc')}</p>
-            </div>
-          </div>
-
-          <textarea
-            rows={4}
-            value={rejectTemplate}
-            onChange={(e) => setRejectTemplate(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white p-3.5 text-sm leading-relaxed text-slate-800 focus:border-primary focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-          />
-
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => success(t('employer.accountTab.saveTemplateBtn'))}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary/10 px-4 py-2 text-xs font-bold text-primary hover:bg-primary hover:text-white transition cursor-pointer"
-            >
-              <Save className="h-3.5 w-3.5" />
-              <span>{t('employer.accountTab.saveTemplateBtn')}</span>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

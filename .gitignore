@@ -18,14 +18,29 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Environment files
+# Environment files & Secrets
 .env
+.env.*
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
 *.env
 !*.env.example
+!*.env.test
+
+# Certificates, private keys & secret files
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.keystore
+*.jks
+client_secret*.json
+serviceAccount*.json
+firebase-adminsdk*.json
+credentials*.json
+*secret*.json
+*credential*.json
 
 # Editor & IDE directories
 .vscode/*
@@ -73,10 +88,3 @@ graphify-out/
 *.tsbuildinfo
 .eslintcache
 .stylelintcache
-
-# Certificates and private keys
-*.pem
-*.key
-*.crt
-*.p12
-*.pfx

@@ -8,6 +8,12 @@ import {
 } from 'typeorm';
 import { Role } from 'src/decorator/customize';
 
+export enum PremiumPlan {
+  FREE = 'FREE',
+  CANDIDATE_PREMIUM = 'CANDIDATE_PREMIUM',
+  HR_PREMIUM = 'HR_PREMIUM',
+}
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -40,6 +46,19 @@ export class User {
     default: Role.USER,
   })
   role: Role;
+
+  @Column({ default: false })
+  isPremium: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: PremiumPlan,
+    default: PremiumPlan.FREE,
+  })
+  premiumPlan: PremiumPlan;
+
+  @Column({ type: 'timestamp', nullable: true })
+  premiumExpiresAt: Date;
 
   @Column({ nullable: true })
   refreshToken: string;

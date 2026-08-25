@@ -27,6 +27,8 @@ import {
 } from '../../../lib/employerApi';
 import { useToast } from '../../../context/ToastContext';
 
+import { CompanyRequiredGate } from '../components/CompanyRequiredGate';
+
 interface CandidateManagementTabProps {
   company: CompanyInfo | null;
   hasCompany: boolean;
@@ -34,14 +36,17 @@ interface CandidateManagementTabProps {
   filterJobId?: string | null;
   openAiRank?: boolean;
   selectedApplicationId?: string | null;
+  onNavigateTab?: (tab: string, extraData?: any) => void;
   onRefreshStats: () => Promise<void>;
 }
 
 export function CandidateManagementTab({
+  hasCompany,
   accessToken,
   filterJobId,
   openAiRank,
   selectedApplicationId,
+  onNavigateTab,
   onRefreshStats,
 }: CandidateManagementTabProps) {
   const { t } = useTranslation();
@@ -81,7 +86,7 @@ export function CandidateManagementTab({
   });
 
   const fetchJobs = async () => {
-    if (!accessToken) return;
+    if (!accessToken || !hasCompany) return;
     try {
       const res = await employerApi.getHrJobs({ pageSize: 100 }, accessToken);
       setJobs(res.result || []);
@@ -91,7 +96,11 @@ export function CandidateManagementTab({
   };
 
   const fetchApplications = async () => {
-    if (!accessToken) return;
+    if (!accessToken || !hasCompany) {
+      setApplications([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       if (selectedJobId && selectedJobId !== 'ALL') {
@@ -117,11 +126,11 @@ export function CandidateManagementTab({
 
   useEffect(() => {
     void fetchJobs();
-  }, [accessToken]);
+  }, [accessToken, hasCompany]);
 
   useEffect(() => {
     void fetchApplications();
-  }, [accessToken, selectedJobId, statusFilter]);
+  }, [accessToken, hasCompany, selectedJobId, statusFilter]);
 
   useEffect(() => {
     if (filterJobId) {
@@ -305,6 +314,16 @@ export function CandidateManagementTab({
     }
     return true;
   });
+
+  if (!hasCompany) {
+    return (
+      <CompanyRequiredGate
+        title="Quản lý Hồ sơ CV & Ứng viên"
+        description="Danh sách hồ sơ ứng tuyển và tính năng AI Xếp hạng ứng viên chỉ hiển thị cho nhân sự thuộc về doanh nghiệp đã kích hoạt."
+        onNavigateTab={onNavigateTab || (() => {})}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

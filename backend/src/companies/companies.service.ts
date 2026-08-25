@@ -308,7 +308,7 @@ export class CompaniesService {
 
     const newCompany = this.companyRepo.create({
       ...createCompanyDto,
-      isActive: false,
+      isActive: true,
       createdBy: {
         _id: user._id,
         email: user.email,
@@ -342,7 +342,7 @@ export class CompaniesService {
 
     if (!company) throw new NotFoundException('Company not found');
 
-    const hrsInCompany = await this.usersService.findAllByCompanyId(id);
+    const hrsInCompany = await this.getCompanyHrs(id);
 
     const jobCount = await this.jobRepo
       .createQueryBuilder('job')
@@ -364,7 +364,17 @@ export class CompaniesService {
     });
     if (!company) throw new NotFoundException('Company not found');
 
-    return await this.usersService.findAllByCompanyId(companyId);
+    const hrs = await this.usersService.findAllByCompanyId(companyId);
+    const creatorId = company.createdBy?._id?.toString();
+
+    return hrs.map((hr) => {
+      const isLead = Boolean(creatorId && hr._id?.toString() === creatorId);
+      return {
+        ...hr,
+        isLead,
+        hrRole: isLead ? 'LEAD' : 'MEMBER',
+      };
+    });
   }
 
   async findWithUserFollow(companyId: string) {
@@ -488,7 +498,7 @@ export class CompaniesService {
 
     if (company.createdBy?._id?.toString() !== approver._id.toString()) {
       throw new BadRequestException(
-        'Chỉ người tạo công ty mới có quyền duyệt yêu cầu tham gia',
+        'Chỉ HR Trưởng (người tạo công ty) mới có quyền duyệt yêu cầu tham gia',
       );
     }
 
@@ -505,6 +515,7 @@ export class CompaniesService {
     await this.usersService.updateUserCompany(userId, {
       _id: companyId,
       name: company.name,
+      isActive: true,
     });
 
     // Notify the requesting user
@@ -532,7 +543,7 @@ export class CompaniesService {
 
     if (company.createdBy?._id?.toString() !== approver._id.toString()) {
       throw new BadRequestException(
-        'Chỉ người tạo công ty mới có quyền từ chối yêu cầu tham gia',
+        'Chỉ HR Trưởng (người tạo công ty) mới có quyền từ chối yêu cầu tham gia',
       );
     }
 
@@ -589,7 +600,7 @@ export class CompaniesService {
 
     const newCompany = this.companyRepo.create({
       ...createCompanyDto,
-      isActive: false,
+      isActive: true,
       createdBy: {
         _id: user._id,
         email: user.email,
@@ -602,6 +613,7 @@ export class CompaniesService {
     await this.usersService.updateUserCompany(user._id.toString(), {
       _id: savedCompany._id.toString(),
       name: savedCompany.name,
+      isActive: true,
     });
 
     await this.redisService.invalidateCompaniesCache();
@@ -630,15 +642,19 @@ export class CompaniesService {
   async getHrDashboardStats(user: IUser) {
     const userInDb = await this.usersService.findOneByEmail(user.email);
     if (!userInDb || !userInDb.company || !userInDb.company._id) {
+      const isPrem = userInDb ? this.usersService.isHrPremium(userInDb) : false;
       return {
         hasCompany: false,
         isProfileComplete: false,
+        isPremium: isPrem,
+        premiumPlan: userInDb?.premiumPlan || 'FREE',
+        premiumExpiresAt: userInDb?.premiumExpiresAt || null,
         company: null,
         stats: {
           totalJobs: 0,
           activeJobs: 0,
           todayJobsPostedCount: 0,
-          maxDailyJobs: 5,
+          maxDailyJobs: isPrem ? 9999 : 5,
           totalApplications: 0,
           pendingApplications: 0,
           reviewingApplications: 0,
@@ -658,15 +674,19 @@ export class CompaniesService {
     });
 
     if (!company) {
+      const isPrem = this.usersService.isHrPremium(userInDb);
       return {
         hasCompany: false,
         isProfileComplete: false,
+        isPremium: isPrem,
+        premiumPlan: userInDb.premiumPlan || 'FREE',
+        premiumExpiresAt: userInDb.premiumExpiresAt || null,
         company: null,
         stats: {
           totalJobs: 0,
           activeJobs: 0,
           todayJobsPostedCount: 0,
-          maxDailyJobs: 5,
+          maxDailyJobs: isPrem ? 9999 : 5,
           totalApplications: 0,
           pendingApplications: 0,
           reviewingApplications: 0,
@@ -809,9 +829,15 @@ export class CompaniesService {
         : null,
     }));
 
+    const isPremium = this.usersService.isHrPremium(userInDb);
+    const maxDailyJobs = isPremium ? 9999 : 5;
+
     return {
       hasCompany: true,
       isProfileComplete,
+      isPremium,
+      premiumPlan: userInDb.premiumPlan || 'FREE',
+      premiumExpiresAt: userInDb.premiumExpiresAt || null,
       company: {
         _id: company._id,
         name: company.name,
@@ -828,7 +854,7 @@ export class CompaniesService {
         totalJobs,
         activeJobs,
         todayJobsPostedCount,
-        maxDailyJobs: 5,
+        maxDailyJobs,
         totalApplications,
         pendingApplications,
         reviewingApplications,

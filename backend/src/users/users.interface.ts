@@ -13,4 +13,7 @@ export interface IUser {
   };
   avatar?: string;
   isApproved?: boolean;
+  isPremium?: boolean;
+  premiumPlan?: string;
+  premiumExpiresAt?: Date;
 }

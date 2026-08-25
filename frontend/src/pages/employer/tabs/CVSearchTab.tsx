@@ -13,12 +13,19 @@ import {
 } from '../../../lib/employerApi';
 import { useToast } from '../../../context/ToastContext';
 
+import { CompanyRequiredGate } from '../components/CompanyRequiredGate';
+
 interface CVSearchTabProps {
   accessToken: string | null;
+  hasCompany?: boolean;
   onNavigateTab: (tab: string, extraData?: any) => void;
 }
 
-export function CVSearchTab({ accessToken, onNavigateTab }: CVSearchTabProps) {
+export function CVSearchTab({
+  accessToken,
+  hasCompany = false,
+  onNavigateTab,
+}: CVSearchTabProps) {
   const { t } = useTranslation();
   const { error, info } = useToast();
 
@@ -38,7 +45,7 @@ export function CVSearchTab({ accessToken, onNavigateTab }: CVSearchTabProps) {
 
   useEffect(() => {
     const loadJobs = async () => {
-      if (!accessToken) return;
+      if (!accessToken || !hasCompany) return;
       try {
         const res = await employerApi.getHrJobs({ pageSize: 50 }, accessToken);
         const jobList = res.result || [];
@@ -51,7 +58,17 @@ export function CVSearchTab({ accessToken, onNavigateTab }: CVSearchTabProps) {
       }
     };
     void loadJobs();
-  }, [accessToken]);
+  }, [accessToken, hasCompany]);
+
+  if (!hasCompany) {
+    return (
+      <CompanyRequiredGate
+        title="Tìm kiếm Hồ sơ CV Ứng viên"
+        description="Tính năng tìm kiếm và lọc CV ứng viên theo bộ kỹ năng chỉ dành cho HR đã liên kết với doanh nghiệp tuyển dụng."
+        onNavigateTab={onNavigateTab}
+      />
+    );
+  }
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();

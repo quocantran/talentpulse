@@ -212,7 +212,18 @@ export class ApplicationsService implements OnModuleInit {
       .leftJoinAndSelect('app.job', 'job')
       .where('app.isDeleted = :isDeleted', { isDeleted: false });
 
-    if (userInfo.role === Role.HR && userInfo.company) {
+    if (userInfo.role === Role.HR) {
+      if (!userInfo.company || !userInfo.company._id) {
+        return {
+          meta: {
+            current,
+            pageSize: limit,
+            pages: 0,
+            total: 0,
+          },
+          result: [],
+        };
+      }
       queryBuilder.andWhere('app.companyId = :companyId', {
         companyId: userInfo.company._id,
       });
@@ -288,6 +299,25 @@ export class ApplicationsService implements OnModuleInit {
 
   // Get applications by job (for HR to review)
   async findByJob(jobId: string, qs: any, user: IUser) {
+    if (user.role === Role.HR) {
+      const userInfo = await this.usersService.findOne(user._id);
+      if (!userInfo.company || !userInfo.company._id) {
+        return {
+          meta: {
+            current: 1,
+            pageSize: 10,
+            pages: 0,
+            total: 0,
+          },
+          result: [],
+        };
+      }
+      const job = await this.jobsService.findOne(jobId);
+      if (!job || job.company?._id?.toString() !== userInfo.company._id.toString()) {
+        throw new BadRequestException('Bạn không có quyền xem ứng viên của công việc này');
+      }
+    }
+
     const limit = qs.pageSize ? parseInt(qs.pageSize) : 10;
     const current = qs.current ? parseInt(qs.current) : 1;
     const skip = (current - 1) * limit;
@@ -681,6 +711,17 @@ export class ApplicationsService implements OnModuleInit {
       throw new NotFoundException('Công việc không tồn tại');
     }
 
+    if (user.role === Role.HR) {
+      const userInfo = await this.usersService.findOne(user._id);
+      if (
+        !userInfo.company ||
+        !userInfo.company._id ||
+        job.company?._id?.toString() !== userInfo.company._id.toString()
+      ) {
+        throw new BadRequestException('Bạn không có quyền truy cập dữ liệu của công việc này');
+      }
+    }
+
     const totalApplications = await this.applicationRepo.count({
       where: {
         jobId,
@@ -757,6 +798,22 @@ export class ApplicationsService implements OnModuleInit {
     },
     user: IUser,
   ) {
+    const job = await this.jobsService.findOne(jobId);
+    if (!job) {
+      throw new NotFoundException('Công việc không tồn tại');
+    }
+
+    if (user.role === Role.HR) {
+      const userInfo = await this.usersService.findOne(user._id);
+      if (
+        !userInfo.company ||
+        !userInfo.company._id ||
+        job.company?._id?.toString() !== userInfo.company._id.toString()
+      ) {
+        throw new BadRequestException('Bạn không có quyền tìm kiếm ứng viên của công việc này');
+      }
+    }
+
     const skillKeywords = query.skills
       ? query.skills
           .split(',')

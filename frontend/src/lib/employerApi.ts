@@ -2,6 +2,14 @@ import { apiRequest } from './api';
 
 const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1').replace(/\/$/, '');
 
+export interface SkillItem {
+  _id: string;
+  name: string;
+  isDeleted?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface CompanyInfo {
   _id: string;
   name: string;
@@ -19,6 +27,9 @@ export interface CompanyInfo {
 export interface HrDashboardStats {
   hasCompany: boolean;
   isProfileComplete: boolean;
+  isPremium?: boolean;
+  premiumPlan?: string;
+  premiumExpiresAt?: string | null;
   company: CompanyInfo | null;
   stats: {
     totalJobs: number;
@@ -76,6 +87,8 @@ export interface HrMember {
   avatar?: string;
   address?: string;
   role: string;
+  isLead?: boolean;
+  hrRole?: 'LEAD' | 'MEMBER';
   createdAt: string;
 }
 
@@ -224,6 +237,9 @@ export const employerApi = {
     return apiRequest<{ meta: any; result: HrJobItem[] }>(`/jobs/by-hr/all?${qs.toString()}`, { accessToken });
   },
 
+  getJobById: (id: string, accessToken?: string) =>
+    apiRequest<HrJobItem>(`/jobs/${id}`, { accessToken }),
+
   searchHrJobs: (name: string, params: { current?: number; pageSize?: number } = {}, accessToken: string) => {
     const qs = new URLSearchParams();
     if (name) qs.append('name', name);
@@ -254,6 +270,18 @@ export const employerApi = {
 
   deleteJob: (id: string, accessToken: string) =>
     apiRequest<{ message: string }>(`/jobs/${id}`, { method: 'DELETE', accessToken }),
+
+  // 4.1. Skills Management & Suggestions
+  getSkills: (params: { current?: number; pageSize?: number; name?: string } = {}, accessToken?: string) => {
+    const qs = new URLSearchParams();
+    if (params.current) qs.append('current', String(params.current));
+    if (params.pageSize) qs.append('pageSize', String(params.pageSize));
+    if (params.name) qs.append('name', params.name);
+    return apiRequest<{ meta: any; result: SkillItem[] }>(`/skills?${qs.toString()}`, { accessToken });
+  },
+
+  createSkill: (data: { name: string; description?: string }, accessToken: string) =>
+    apiRequest<SkillItem>('/skills', { method: 'POST', body: data, accessToken }),
 
   // 5. Candidate Applications
   getApplications: (params: { current?: number; pageSize?: number; status?: string; companyId?: string } = {}, accessToken: string) => {

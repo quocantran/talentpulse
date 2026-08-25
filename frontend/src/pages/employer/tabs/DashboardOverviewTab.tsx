@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import type { HrDashboardStats } from '../../../lib/employerApi';
 
+import { CompanyRequiredGate } from '../components/CompanyRequiredGate';
+
 interface DashboardOverviewTabProps {
   data: HrDashboardStats | null;
   isLoading: boolean;
@@ -56,6 +58,16 @@ export function DashboardOverviewTab({
   const isProfileComplete = data?.isProfileComplete ?? false;
   const stats = data?.stats;
   const company = data?.company;
+
+  if (!hasCompany) {
+    return (
+      <CompanyRequiredGate
+        title="Báo cáo & Thống kê Hiệu quả Tuyển dụng"
+        description="Dashboard phân tích số liệu tuyển dụng, biểu đồ ứng tuyển 7 ngày và danh sách hồ sơ mới nhất chỉ khả dụng khi bạn đã tham gia hoặc khởi tạo doanh nghiệp."
+        onNavigateTab={onNavigateTab}
+      />
+    );
+  }
 
   const dailyStats = stats?.dailyApplicationStats || [];
   const maxDailyCount = Math.max(...dailyStats.map((d) => d.count), 5);
