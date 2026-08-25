@@ -82,12 +82,12 @@ export function Template1ClassicATS({
             />
           </div>
 
-          {/* Contact Info Items - Always Single Line */}
+          {/* Contact Info Items - TopCV responsive wrap style */}
           <div
-            className="flex flex-nowrap items-center justify-center gap-x-2 sm:gap-x-3.5 text-slate-600 max-w-full"
+            className="flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-5 gap-y-2 text-slate-600 max-w-full"
             style={{ fontSize: `${0.85 * fontMultiplier}rem` }}
           >
-            <div className="inline-flex items-center gap-1 shrink-0">
+            <div className="inline-flex items-center gap-1.5 shrink-0 max-w-full">
               <Phone className="h-3.5 w-3.5 shrink-0" style={{ color: currentTheme.color }} />
               <InlineText
                 value={phone}
@@ -96,15 +96,14 @@ export function Template1ClassicATS({
                   markDirty();
                 }}
                 placeholder="0123 456 789"
-                className="w-24 text-center"
+                nowrap={true}
+                className="w-auto"
                 defaultFontSizePx={resolveFontSizePx(0.85 * fontMultiplier * 16)}
                 defaultFontFamily={currentFont.family}
               />
             </div>
 
-            <span className="text-slate-300 select-none">&bull;</span>
-
-            <div className="inline-flex items-center gap-1 shrink-0">
+            <div className="inline-flex items-center gap-1.5 shrink-0 max-w-full">
               <Mail className="h-3.5 w-3.5 shrink-0" style={{ color: currentTheme.color }} />
               <InlineText
                 value={email}
@@ -113,15 +112,14 @@ export function Template1ClassicATS({
                   markDirty();
                 }}
                 placeholder="email@example.com"
-                className="w-40 text-center"
+                nowrap={true}
+                className="w-auto"
                 defaultFontSizePx={resolveFontSizePx(0.85 * fontMultiplier * 16)}
                 defaultFontFamily={currentFont.family}
               />
             </div>
 
-            <span className="text-slate-300 select-none">&bull;</span>
-
-            <div className="inline-flex items-center gap-1 shrink-0">
+            <div className="inline-flex items-center gap-1.5 shrink-0 max-w-full">
               <Globe className="h-3.5 w-3.5 shrink-0" style={{ color: currentTheme.color }} />
               <InlineText
                 value={link}
@@ -130,15 +128,14 @@ export function Template1ClassicATS({
                   markDirty();
                 }}
                 placeholder="linkedin.com/in/username"
-                className="w-36 text-center"
+                nowrap={true}
+                className="w-auto"
                 defaultFontSizePx={resolveFontSizePx(0.85 * fontMultiplier * 16)}
                 defaultFontFamily={currentFont.family}
               />
             </div>
 
-            <span className="text-slate-300 select-none">&bull;</span>
-
-            <div className="inline-flex items-center gap-1 shrink-0">
+            <div className="inline-flex items-center gap-1.5 shrink-0 max-w-full">
               <MapPin className="h-3.5 w-3.5 shrink-0" style={{ color: currentTheme.color }} />
               <InlineText
                 value={address}
@@ -147,7 +144,8 @@ export function Template1ClassicATS({
                   markDirty();
                 }}
                 placeholder="Hà Nội, Việt Nam"
-                className="w-32 text-center"
+                nowrap={true}
+                className="w-auto"
                 defaultFontSizePx={resolveFontSizePx(0.85 * fontMultiplier * 16)}
                 defaultFontFamily={currentFont.family}
               />
@@ -1171,7 +1169,10 @@ export function Template1ClassicATS({
       </div>
 
       {/* Bottom Watermark */}
-      <div className="mt-8 pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400 select-none">
+      <div
+        className="cv-watermark mt-8 pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400 select-none"
+        data-watermark="true"
+      >
         <span>Tổng số trang: {pageCount}</span>
         <span className="inline-flex items-center gap-1 font-semibold text-slate-500">
           <Sparkles className="h-3 w-3 text-primary" />

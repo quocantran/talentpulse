@@ -348,6 +348,7 @@ export interface InlineTextProps {
   className?: string;
   style?: React.CSSProperties;
   multiline?: boolean;
+  nowrap?: boolean;
   rows?: number;
   asTitle?: boolean;
   initialFormatting?: FieldFormatting;
@@ -364,7 +365,8 @@ export function InlineText({
   className = '',
   style = {},
   multiline = false,
-  rows = 2,
+  nowrap = false,
+  rows,
   asTitle = false,
   initialFormatting,
   defaultFontSizePx,
@@ -377,14 +379,32 @@ export function InlineText({
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-grow textarea height
+  const initialRows = rows || (multiline ? 2 : 1);
+
+  // Auto-grow textarea height so all text wraps and remains fully visible
+  const adjustHeight = () => {
+    if (nowrap) return;
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+    window.dispatchEvent(new CustomEvent('talentpulse:cv-content-change'));
+  };
+
   useEffect(() => {
-    if (multiline && textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-      window.dispatchEvent(new CustomEvent('talentpulse:cv-content-change'));
-    }
-  }, [value, multiline, formatting.fontSize]);
+    adjustHeight();
+  }, [value, formatting.fontSize, formatting.fontFamily, multiline, nowrap]);
+
+  // Adjust on initial mount and window resize
+  useEffect(() => {
+    if (nowrap) return;
+    const timer = setTimeout(adjustHeight, 50);
+    window.addEventListener('resize', adjustHeight);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', adjustHeight);
+    };
+  }, [nowrap]);
 
   const handleUpdateFormatting = (newFmt: Partial<FieldFormatting>) => {
     setFormatting((prev) => ({ ...prev, ...newFmt }));
@@ -408,13 +428,28 @@ export function InlineText({
     fontStyle: formatting.isItalic !== undefined ? (formatting.isItalic ? 'italic' : 'normal') : style.fontStyle,
     textDecoration: formatting.isUnderline !== undefined ? (formatting.isUnderline ? 'underline' : 'none') : style.textDecoration,
     textAlign: formatting.textAlign || computedDefaultTextAlign,
+    textTransform: asTitle ? 'uppercase' : style.textTransform,
+    wordBreak: nowrap ? 'normal' : 'break-word',
+    overflowWrap: nowrap ? 'normal' : 'break-word',
+    whiteSpace: nowrap ? 'nowrap' : 'pre-wrap',
+    lineHeight: style.lineHeight || 1.35,
   };
 
   const hoverFocusClasses =
-    'transition-all duration-150 rounded px-1.5 py-0.5 border border-dashed hover:border-red-400 hover:bg-red-50/20 dark:hover:border-red-400/80 dark:hover:bg-red-950/10 focus:border-solid focus:border-primary focus:bg-white focus:shadow-xs focus:outline-none dark:focus:bg-slate-900';
+    'transition-all duration-150 rounded px-1 py-0.5 border border-dashed hover:border-red-400 hover:bg-red-50/20 dark:hover:border-red-400/80 dark:hover:bg-red-950/10 focus:border-solid focus:border-primary focus:bg-white focus:shadow-xs focus:outline-none dark:focus:bg-slate-900';
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+    if (!multiline && e.key === 'Enter') {
+      e.preventDefault();
+      (e.target as HTMLElement)?.blur();
+    }
+  };
 
   return (
-    <div ref={containerRef} className={`relative block min-w-0 max-w-full ${className}`}>
+    <div
+      ref={containerRef}
+      className={`relative ${nowrap ? 'inline-block' : 'block min-w-0 max-w-full w-full'} ${className}`}
+    >
       {/* Floating Toolbar appears when focused */}
       {isFocused && (
         <FloatingFormatToolbar
@@ -427,24 +462,42 @@ export function InlineText({
         />
       )}
 
-      {multiline ? (
+      {nowrap ? (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          placeholder={placeholder}
+          style={{
+            ...dynamicStyle,
+            whiteSpace: 'nowrap',
+            width: `${Math.max((value || placeholder).length + 1, 6)}ch`,
+            maxWidth: '100%',
+          }}
+          className={`box-border inline-block ${
+            !isFocused ? 'border-transparent' : ''
+          } ${hoverFocusClasses} ${
+            !value ? 'italic text-slate-400 placeholder:text-slate-400' : ''
+          }`}
+        />
+      ) : (
         <textarea
           ref={textareaRef}
-          rows={rows}
+          rows={initialRows}
           value={value}
           onChange={(e) => {
             onChange(e.target.value);
-            e.target.style.height = 'auto';
-            e.target.style.height = `${e.target.scrollHeight}px`;
-            window.dispatchEvent(new CustomEvent('talentpulse:cv-content-change'));
+            adjustHeight();
           }}
-          onInput={(e) => {
-            const target = e.target as HTMLTextAreaElement;
-            target.style.height = 'auto';
-            target.style.height = `${target.scrollHeight}px`;
-            window.dispatchEvent(new CustomEvent('talentpulse:cv-content-change'));
+          onInput={adjustHeight}
+          onKeyDown={handleKeyDown}
+          onFocus={() => {
+            setIsFocused(true);
+            adjustHeight();
           }}
-          onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           placeholder={placeholder}
           style={dynamicStyle}
@@ -453,21 +506,6 @@ export function InlineText({
           } ${hoverFocusClasses} ${
             !value ? 'italic text-slate-400 placeholder:text-slate-400' : ''
           }`}
-        />
-      ) : (
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholder={placeholder}
-          style={dynamicStyle}
-          className={`w-full max-w-full box-border block ${
-            !isFocused ? 'border-transparent' : ''
-          } ${hoverFocusClasses} ${
-            !value ? 'italic text-slate-400 placeholder:text-slate-400' : ''
-          } ${asTitle ? 'uppercase' : ''}`}
         />
       )}
     </div>

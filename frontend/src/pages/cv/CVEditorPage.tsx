@@ -359,7 +359,9 @@ export default function CVEditorPage() {
     clone.style.boxShadow = 'none';
 
     // Remove any interactive UI elements, edit buttons, toolbars, popovers
-    clone.querySelectorAll('.print\\:hidden, button, [role="toolbar"], [data-toolbar]').forEach((el) => el.remove());
+    clone
+      .querySelectorAll('.print\\:hidden, button, [role="toolbar"], [data-toolbar]')
+      .forEach((el) => el.remove());
 
     const liveInputs = rootEl.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea');
     const cloneInputs = clone.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea');

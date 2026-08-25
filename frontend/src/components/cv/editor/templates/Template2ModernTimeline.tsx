@@ -88,7 +88,7 @@ export function Template2ModernTimeline({
 
           {/* Right Contacts Box */}
           <div
-            className="rounded-xl p-3.5 space-y-1 text-xs text-slate-700 shrink-0 border border-slate-100"
+            className="rounded-xl p-3.5 space-y-1.5 text-xs text-slate-700 shrink-0 border border-slate-100 max-w-[280px]"
             style={{
               backgroundColor: currentTheme.bgLight,
               fontSize: `${0.825 * fontMultiplier}rem`,
@@ -103,7 +103,7 @@ export function Template2ModernTimeline({
                   markDirty();
                 }}
                 placeholder="0123 456 789"
-                className="w-32"
+                className="flex-1 min-w-[120px]"
                 defaultFontSizePx={resolveFontSizePx(0.825 * fontMultiplier * 16)}
                 defaultFontFamily={currentFont.family}
               />
@@ -117,7 +117,7 @@ export function Template2ModernTimeline({
                   markDirty();
                 }}
                 placeholder="email@example.com"
-                className="w-36"
+                className="flex-1 min-w-[140px]"
                 defaultFontSizePx={resolveFontSizePx(0.825 * fontMultiplier * 16)}
                 defaultFontFamily={currentFont.family}
               />
@@ -131,7 +131,7 @@ export function Template2ModernTimeline({
                   markDirty();
                 }}
                 placeholder="Hà Nội, VN"
-                className="w-32"
+                className="flex-1 min-w-[120px]"
                 defaultFontSizePx={resolveFontSizePx(0.825 * fontMultiplier * 16)}
                 defaultFontFamily={currentFont.family}
               />
@@ -145,7 +145,7 @@ export function Template2ModernTimeline({
                   markDirty();
                 }}
                 placeholder="linkedin.com"
-                className="w-32"
+                className="flex-1 min-w-[120px]"
                 defaultFontSizePx={resolveFontSizePx(0.825 * fontMultiplier * 16)}
                 defaultFontFamily={currentFont.family}
               />
@@ -693,7 +693,10 @@ export function Template2ModernTimeline({
       </div>
 
       {/* Bottom Watermark */}
-      <div className="mt-8 pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400 select-none">
+      <div
+        className="cv-watermark mt-8 pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400 select-none"
+        data-watermark="true"
+      >
         <span>Tổng số trang: {pageCount}</span>
         <span className="inline-flex items-center gap-1 font-semibold text-slate-500">
           <Sparkles className="h-3 w-3 text-primary" />

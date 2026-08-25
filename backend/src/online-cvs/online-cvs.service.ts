@@ -273,16 +273,27 @@ export class OnlineCVsService {
 
     // Verify premium directly from database to prevent watermark bypass
     const userInDb = await this.userRepo.findOne({ where: { _id: user._id } });
-    const userIsPremium = this.usersService.isCandidatePremium(userInDb) || Boolean(isPremium);
+    const userHasPremium = this.usersService.isCandidatePremium(userInDb);
+    // Watermark is ONLY removed when explicitly downloading with Premium mode (isPremium === true)
+    const shouldRemoveWatermark = Boolean(isPremium) && userHasPremium;
 
     try {
-      const contentToUse = htmlContent || cv.htmlContent;
+      let contentToUse = htmlContent || cv.htmlContent;
       let finalHtml = '';
 
-      const watermarkHtml = userIsPremium
+      if (shouldRemoveWatermark && contentToUse) {
+        // Strip any existing watermark blocks from HTML specifically for this Premium download
+        contentToUse = contentToUse
+          .replace(/<div[^>]*class="[^"]*cv-watermark[^"]*"[^>]*>[\s\S]*?<\/div>/gi, '')
+          .replace(/<div[^>]*data-watermark="true"[^>]*>[\s\S]*?<\/div>/gi, '')
+          .replace(/<div[^>]*>[\s\S]*?Được tạo bởi[\s\S]*?TalentPulse[\s\S]*?<\/div>/gi, '')
+          .replace(/<div style="position: fixed; bottom: 8px;[\s\S]*?<\/div>/gi, '');
+      }
+
+      const watermarkHtml = shouldRemoveWatermark
         ? ''
         : `
-<div style="position: fixed; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 8pt; color: #94a3b8; font-family: 'Inter', sans-serif; border-top: 1px dashed #cbd5e1; padding-top: 4px; margin: 0 40px; pointer-events: none; z-index: 9999; background: white;">
+<div class="cv-watermark" style="position: fixed; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 8pt; color: #94a3b8; font-family: 'Inter', sans-serif; border-top: 1px dashed #cbd5e1; padding-top: 4px; margin: 0 40px; pointer-events: none; z-index: 9999; background: white;">
   © <strong>talentpulse.vn</strong> &bull; Nền tảng tạo CV & kết nối ứng viên thông minh
 </div>`;
 
@@ -316,16 +327,17 @@ export class OnlineCVsService {
     .print\\:hidden {
       display: none !important;
     }
+    ${shouldRemoveWatermark ? '.cv-watermark, [data-watermark] { display: none !important; }' : ''}
   </style>
 </head>
 <body>
   ${contentToUse}
-  ${watermarkHtml}
+  ${!contentToUse.includes('talentpulse.vn') && !shouldRemoveWatermark ? watermarkHtml : ''}
 </body>
 </html>`;
       } else {
         finalHtml = this.generateHTML(cv);
-        if (!isPremium) {
+        if (!shouldRemoveWatermark) {
           finalHtml = finalHtml.replace('</body>', `${watermarkHtml}</body>`);
         }
       }

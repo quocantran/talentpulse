@@ -5,7 +5,6 @@ export function PreviewTemplate2({
   data,
   currentTheme,
   fontMultiplier,
-  isPremium = false,
   langTitles,
 }: CVPreviewTemplateProps) {
   return (
@@ -41,7 +40,7 @@ export function PreviewTemplate2({
 
           {/* Right Contacts Box */}
           <div
-            className="rounded-xl p-3.5 space-y-1.5 text-xs text-slate-700 shrink-0 border border-slate-100"
+            className="rounded-xl p-3.5 space-y-1.5 text-xs text-slate-700 shrink-0 border border-slate-100 max-w-[280px]"
             style={{
               backgroundColor: currentTheme.bgLight,
               fontSize: `${0.825 * fontMultiplier}rem`,
@@ -50,25 +49,25 @@ export function PreviewTemplate2({
             {data.phone && (
               <div className="flex items-center gap-2">
                 <Phone className="h-3.5 w-3.5 shrink-0" style={{ color: currentTheme.color }} />
-                <span>{data.phone}</span>
+                <span className="break-all">{data.phone}</span>
               </div>
             )}
             {data.email && (
               <div className="flex items-center gap-2">
                 <Mail className="h-3.5 w-3.5 shrink-0" style={{ color: currentTheme.color }} />
-                <span className="truncate max-w-[180px]">{data.email}</span>
+                <span className="break-all">{data.email}</span>
               </div>
             )}
             {data.address && (
               <div className="flex items-center gap-2">
                 <MapPin className="h-3.5 w-3.5 shrink-0" style={{ color: currentTheme.color }} />
-                <span>{data.address}</span>
+                <span className="break-words">{data.address}</span>
               </div>
             )}
             {data.link && (
               <div className="flex items-center gap-2">
                 <Globe className="h-3.5 w-3.5 shrink-0" style={{ color: currentTheme.color }} />
-                <span className="truncate max-w-[180px]">{data.link}</span>
+                <span className="break-all">{data.link}</span>
               </div>
             )}
           </div>
@@ -344,20 +343,17 @@ export function PreviewTemplate2({
         </div>
       </div>
 
-      {/* Bottom Watermark (Free Tier) */}
-      {!isPremium ? (
-        <div className="mt-8 pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400 select-none">
-          <span>Trang 1 / 1</span>
-          <span className="inline-flex items-center gap-1 font-semibold text-slate-500">
-            <Sparkles className="h-3 w-3 text-primary" />
-            Được tạo bởi <b className="text-slate-700">TalentPulse</b> — talentpulse.vn
-          </span>
-        </div>
-      ) : (
-        <div className="mt-8 pt-3 text-right text-[10px] text-slate-400 select-none">
-          Trang 1 / 1
-        </div>
-      )}
+      {/* Bottom Watermark */}
+      <div
+        className="cv-watermark mt-8 pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400 select-none"
+        data-watermark="true"
+      >
+        <span>Trang 1 / 1</span>
+        <span className="inline-flex items-center gap-1 font-semibold text-slate-500">
+          <Sparkles className="h-3 w-3 text-primary" />
+          Được tạo bởi <b className="text-slate-700">TalentPulse</b> — talentpulse.vn
+        </span>
+      </div>
     </div>
   );
 }

@@ -5,7 +5,6 @@ export function PreviewTemplate1({
   data,
   currentTheme,
   fontMultiplier,
-  isPremium = false,
   langTitles,
 }: CVPreviewTemplateProps) {
   return (
@@ -32,35 +31,32 @@ export function PreviewTemplate1({
             {data.position || 'Vị trí công việc ứng tuyển'}
           </p>
 
-          {/* Contact info list - Always single line */}
+          {/* Contact info list - TopCV responsive wrap style */}
           <div
-            className="flex flex-nowrap items-center justify-center gap-x-2 sm:gap-x-3 text-slate-600 max-w-full"
+            className="flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-5 gap-y-2 text-slate-600 max-w-full"
             style={{ fontSize: `${0.85 * fontMultiplier}rem` }}
           >
             {data.phone && (
-              <span className="inline-flex items-center gap-1 shrink-0">
-                <Phone className="h-3.5 w-3.5" style={{ color: currentTheme.color }} />
+              <span className="inline-flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                <Phone className="h-3.5 w-3.5 shrink-0" style={{ color: currentTheme.color }} />
                 <span>{data.phone}</span>
               </span>
             )}
-            {data.phone && data.email && <span className="text-slate-300 select-none">&bull;</span>}
             {data.email && (
-              <span className="inline-flex items-center gap-1 shrink-0">
-                <Mail className="h-3.5 w-3.5" style={{ color: currentTheme.color }} />
+              <span className="inline-flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                <Mail className="h-3.5 w-3.5 shrink-0" style={{ color: currentTheme.color }} />
                 <span>{data.email}</span>
               </span>
             )}
-            {data.email && data.link && <span className="text-slate-300 select-none">&bull;</span>}
             {data.link && (
-              <span className="inline-flex items-center gap-1 shrink-0">
-                <Globe className="h-3.5 w-3.5" style={{ color: currentTheme.color }} />
+              <span className="inline-flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                <Globe className="h-3.5 w-3.5 shrink-0" style={{ color: currentTheme.color }} />
                 <span>{data.link}</span>
               </span>
             )}
-            {data.link && data.address && <span className="text-slate-300 select-none">&bull;</span>}
             {data.address && (
-              <span className="inline-flex items-center gap-1 shrink-0">
-                <MapPin className="h-3.5 w-3.5" style={{ color: currentTheme.color }} />
+              <span className="inline-flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                <MapPin className="h-3.5 w-3.5 shrink-0" style={{ color: currentTheme.color }} />
                 <span>{data.address}</span>
               </span>
             )}
@@ -367,19 +363,16 @@ export function PreviewTemplate1({
       </div>
 
       {/* Bottom Watermark */}
-      {!isPremium ? (
-        <div className="mt-8 pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400 select-none">
-          <span>Trang 1 / 1</span>
-          <span className="inline-flex items-center gap-1 font-semibold text-slate-500">
-            <Sparkles className="h-3 w-3 text-primary" />
-            Được tạo bởi <b className="text-slate-700">TalentPulse</b> — talentpulse.vn
-          </span>
-        </div>
-      ) : (
-        <div className="mt-8 pt-3 text-right text-[10px] text-slate-400 select-none">
-          Trang 1 / 1
-        </div>
-      )}
+      <div
+        className="cv-watermark mt-8 pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400 select-none"
+        data-watermark="true"
+      >
+        <span>Trang 1 / 1</span>
+        <span className="inline-flex items-center gap-1 font-semibold text-slate-500">
+          <Sparkles className="h-3 w-3 text-primary" />
+          Được tạo bởi <b className="text-slate-700">TalentPulse</b> — talentpulse.vn
+        </span>
+      </div>
     </div>
   );
 }
